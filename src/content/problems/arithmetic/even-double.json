@@ -1,0 +1,19 @@
+{
+  "id": "9",
+  "slug": "even-double",
+  "title": "Double is Even",
+  "difficulty": "medium",
+  "category": "arithmetic",
+  "tags": ["even", "double", "natural numbers"],
+  "description": "Prove that doubling any natural number produces an even number.\n\n**Goal:** `forall n : nat, Nat.even (2 * n) = true`\n\nThe `Nat.even` function returns `true` for even numbers and `false` for odd numbers. Use the standard library's arithmetic facts.",
+  "hints": [
+    "Use induction on n",
+    "For the base case, 2 * 0 = 0 and even 0 = true",
+    "For the inductive case, note that 2 * S n = S (S (2 * n))",
+    "The even function satisfies: even (S (S n)) = even n"
+  ],
+  "prelude": "Require Import Arith.\nRequire Import PeanoNat.",
+  "template": "Theorem even_double : forall n : nat, Nat.even (2 * n) = true.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem even_double : forall n : nat, Nat.even (2 * n) = true.\nProof.\n  intros n.\n  induction n as [| n' IHn'].\n  - simpl. reflexivity.\n  - simpl. rewrite Nat.add_succ_r. simpl. exact IHn'.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

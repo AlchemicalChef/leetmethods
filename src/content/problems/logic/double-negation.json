@@ -1,0 +1,18 @@
+{
+  "id": "2",
+  "slug": "double-negation",
+  "title": "Double Negation Introduction",
+  "difficulty": "easy",
+  "category": "logic",
+  "tags": ["negation", "basic"],
+  "description": "Prove that from `P` we can derive `~~P` (double negation introduction).\n\n**Goal:** `forall P : Prop, P -> ~~P`\n\nRemember that `~P` is defined as `P -> False`, so `~~P` is `(P -> False) -> False`.\n\nThis direction of double negation is provable in intuitionistic logic.",
+  "hints": [
+    "Unfold the definition of negation: ~P means P -> False",
+    "After intros, you'll have P and need to prove False from (P -> False)",
+    "If you have H : P -> False and HP : P, then (H HP) gives you False"
+  ],
+  "prelude": "(* No imports needed *)",
+  "template": "Theorem double_negation_intro : forall P : Prop, P -> ~~P.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem double_negation_intro : forall P : Prop, P -> ~~P.\nProof.\n  intros P HP HnP.\n  apply HnP.\n  exact HP.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

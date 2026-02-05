@@ -1,0 +1,19 @@
+{
+  "id": "6",
+  "slug": "mult-n-zero",
+  "title": "Multiplication by Zero",
+  "difficulty": "medium",
+  "category": "induction",
+  "tags": ["natural numbers", "multiplication"],
+  "description": "Prove that multiplying any natural number by zero on the right yields zero.\n\n**Goal:** `forall n : nat, n * 0 = 0`\n\nSimilar to `n + 0 = n`, this requires induction because multiplication is defined recursively on its first argument. The definition is:\n- `0 * m = 0`\n- `S n * m = m + n * m`",
+  "hints": [
+    "Use induction on n",
+    "The base case follows directly from the definition",
+    "For the inductive case, simplify and use the inductive hypothesis",
+    "Remember: S n * 0 simplifies to 0 + n * 0"
+  ],
+  "prelude": "Require Import Arith.",
+  "template": "Theorem mult_n_zero : forall n : nat, n * 0 = 0.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem mult_n_zero : forall n : nat, n * 0 = 0.\nProof.\n  intros n.\n  induction n as [| n' IHn'].\n  - reflexivity.\n  - simpl. rewrite IHn'. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "5",
+  "slug": "plus-comm",
+  "title": "Addition is Commutative",
+  "difficulty": "medium",
+  "category": "induction",
+  "tags": ["natural numbers", "commutativity"],
+  "description": "Prove that addition of natural numbers is commutative: `n + m = m + n`.\n\n**Goal:** `forall n m : nat, n + m = m + n`\n\nThis is a classic induction proof that requires using previously proved lemmas. You'll need to use the fact that `n + 0 = n` and `n + S m = S (n + m)`.",
+  "hints": [
+    "Perform induction on n",
+    "For the base case, you'll need the fact that m + 0 = m (use `Nat.add_0_r`)",
+    "For the inductive case, use `simpl` and then `rewrite IHn`",
+    "You may need `Nat.add_succ_r` which states: n + S m = S (n + m)"
+  ],
+  "prelude": "Require Import Arith.\nRequire Import Lia.",
+  "template": "Theorem plus_comm : forall n m : nat, n + m = m + n.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem plus_comm : forall n m : nat, n + m = m + n.\nProof.\n  intros n m.\n  induction n as [| n' IHn'].\n  - simpl. rewrite Nat.add_0_r. reflexivity.\n  - simpl. rewrite IHn'. rewrite Nat.add_succ_r. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "3",
+  "slug": "and-commutative",
+  "title": "Conjunction is Commutative",
+  "difficulty": "easy",
+  "category": "logic",
+  "tags": ["conjunction", "basic"],
+  "description": "Prove that logical AND is commutative: `P /\\ Q -> Q /\\ P`.\n\n**Goal:** `forall P Q : Prop, P /\\ Q -> Q /\\ P`\n\nTo work with conjunctions in Coq:\n- Use `destruct` to break apart a conjunction hypothesis into its components\n- Use `split` to prove a conjunction by proving each part separately",
+  "hints": [
+    "Use `intros` to introduce P, Q, and the hypothesis P /\\ Q",
+    "Use `destruct` on the conjunction to get separate hypotheses for P and Q",
+    "Use `split` to break the goal Q /\\ P into two subgoals"
+  ],
+  "prelude": "(* No imports needed *)",
+  "template": "Theorem and_commutative : forall P Q : Prop, P /\\ Q -> Q /\\ P.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem and_commutative : forall P Q : Prop, P /\\ Q -> Q /\\ P.\nProof.\n  intros P Q H.\n  destruct H as [HP HQ].\n  split.\n  - exact HQ.\n  - exact HP.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

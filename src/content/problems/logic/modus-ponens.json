@@ -1,0 +1,17 @@
+{
+  "id": "1",
+  "slug": "modus-ponens",
+  "title": "Modus Ponens",
+  "difficulty": "easy",
+  "category": "logic",
+  "tags": ["implication", "basic"],
+  "description": "Prove the classic modus ponens rule: if we have `P` and `P -> Q`, then we can conclude `Q`.\n\n**Goal:** `forall P Q : Prop, P -> (P -> Q) -> Q`\n\nThis is one of the most fundamental rules of propositional logic. In Coq, implications are proved by introducing hypotheses and then applying them.",
+  "hints": [
+    "Use `intros` to introduce the propositions and hypotheses into your context",
+    "Once you have both P and (P -> Q) as hypotheses, you can use `apply` to use the implication"
+  ],
+  "prelude": "(* No imports needed for this basic logic proof *)",
+  "template": "Theorem modus_ponens : forall P Q : Prop, P -> (P -> Q) -> Q.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem modus_ponens : forall P Q : Prop, P -> (P -> Q) -> Q.\nProof.\n  intros P Q HP HPQ.\n  apply HPQ.\n  exact HP.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

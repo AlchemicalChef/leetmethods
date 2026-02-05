@@ -1,0 +1,18 @@
+{
+  "id": "4",
+  "slug": "plus-n-zero",
+  "title": "Plus N Zero",
+  "difficulty": "easy",
+  "category": "induction",
+  "tags": ["natural numbers", "basic induction"],
+  "description": "Prove that adding zero to any natural number `n` on the right yields `n`.\n\n**Goal:** `forall n : nat, n + 0 = n`\n\nNote that `0 + n = n` holds by the definition of `+`, but `n + 0 = n` requires induction because `+` is defined by recursion on its first argument.\n\nThis is your first encounter with proof by induction!",
+  "hints": [
+    "Use `induction n` to perform structural induction on n",
+    "The base case (n = 0) should be solvable with `reflexivity` or `simpl`",
+    "For the inductive case, use `simpl` to simplify and `rewrite IHn` to use the inductive hypothesis"
+  ],
+  "prelude": "Require Import Arith.",
+  "template": "Theorem plus_n_zero : forall n : nat, n + 0 = n.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem plus_n_zero : forall n : nat, n + 0 = n.\nProof.\n  intros n.\n  induction n as [| n' IHn'].\n  - reflexivity.\n  - simpl. rewrite IHn'. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

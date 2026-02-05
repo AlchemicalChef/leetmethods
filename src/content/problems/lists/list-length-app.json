@@ -1,0 +1,19 @@
+{
+  "id": "7",
+  "slug": "list-length-app",
+  "title": "Length of Appended Lists",
+  "difficulty": "medium",
+  "category": "lists",
+  "tags": ["lists", "length", "append"],
+  "description": "Prove that the length of two appended lists equals the sum of their individual lengths.\n\n**Goal:** `forall (A : Type) (l1 l2 : list A), length (l1 ++ l2) = length l1 + length l2`\n\nThis is a fundamental property of list operations. You'll need to use induction on the first list.",
+  "hints": [
+    "Perform induction on l1",
+    "The base case: length ([] ++ l2) should simplify nicely",
+    "For the inductive case, use simpl and then the inductive hypothesis",
+    "Remember that (a :: l1) ++ l2 = a :: (l1 ++ l2)"
+  ],
+  "prelude": "Require Import List.\nImport ListNotations.",
+  "template": "Theorem length_app : forall (A : Type) (l1 l2 : list A),\n  length (l1 ++ l2) = length l1 + length l2.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem length_app : forall (A : Type) (l1 l2 : list A),\n  length (l1 ++ l2) = length l1 + length l2.\nProof.\n  intros A l1 l2.\n  induction l1 as [| x l1' IHl1'].\n  - simpl. reflexivity.\n  - simpl. rewrite IHl1'. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}
