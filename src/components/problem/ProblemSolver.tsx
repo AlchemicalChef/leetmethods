@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { ChevronDown, ChevronUp, Loader2, AlertCircle } from 'lucide-react';
 import { CoqEditor, GoalsPanel, EditorToolbar } from '@/components/editor';
 import { ProblemDescription } from './ProblemDescription';
 import { useEditorStore } from '@/store/editorStore';
 import { useCoqStore } from '@/store/coqStore';
 import { useProgressStore } from '@/store/progressStore';
-import { getCoqService, resetCoqService } from '@/lib/coq';
+import { getCoqService, resetCoqService, setInitializing } from '@/lib/coq';
+import type { CoqService } from '@/lib/coq';
 import type { Problem } from '@/lib/problems/types';
 
 interface ProblemSolverProps {
@@ -20,12 +22,52 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
 
   const [hintsRevealed, setHintsRevealed] = useState(0);
   const [submissionResult, setSubmissionResult] = useState<'success' | 'failure' | null>(null);
+  const [goalsExpanded, setGoalsExpanded] = useState(true);
+  const [coqLoading, setCoqLoading] = useState(false);
+  const [coqInitError, setCoqInitError] = useState<string | null>(null);
 
-  // FIX #4: Use ref to capture code at execution time
+  // Use ref to capture code at execution time
   const codeRef = useRef(code);
+  const serviceRef = useRef<CoqService | null>(null);
+
   useEffect(() => {
     codeRef.current = code;
   }, [code]);
+
+  // Initialize Coq service
+  const initializeCoqService = useCallback(async () => {
+    setCoqLoading(true);
+    setCoqInitError(null);
+    setInitializing(true);
+
+    try {
+      const service = getCoqService({
+        onStatusChange: setStatus,
+        onGoalsUpdate: setGoals,
+        onMessage: (msg) => addMessage(msg.type, msg.content),
+        onReady: () => {
+          setStatus('ready');
+          setCoqLoading(false);
+          setInitializing(false);
+        },
+        onError: (error) => {
+          setCoqInitError(error);
+          setCoqLoading(false);
+          setInitializing(false);
+        },
+      });
+
+      await service.initialize();
+      serviceRef.current = service;
+      setCoqLoading(false);
+      setInitializing(false);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to initialize Coq';
+      setCoqInitError(errorMsg);
+      setCoqLoading(false);
+      setInitializing(false);
+    }
+  }, [setStatus, setGoals, addMessage]);
 
   // Initialize editor with problem template
   useEffect(() => {
@@ -35,19 +77,12 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
 
     loadCode(problem.slug, problem.template);
 
-    // FIX #10: Always set hints based on progress, defaulting to 0
+    // Set hints based on progress
     const progress = getProgress(problem.slug);
     setHintsRevealed(progress?.hintsUsed ?? 0);
 
-    // Initialize Coq service with fresh callbacks
-    const service = getCoqService({
-      onStatusChange: setStatus,
-      onGoalsUpdate: setGoals,
-      onMessage: (msg) => addMessage(msg.type, msg.content),
-      onReady: () => setStatus('ready'),
-    });
-
-    service.initialize().catch(console.error);
+    // Initialize Coq service
+    initializeCoqService();
 
     return () => {
       resetCoqService();
@@ -62,43 +97,42 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
     [setCode]
   );
 
-  // FIX #4: Capture code atomically at execution time
   const handleExecuteNext = useCallback(async () => {
+    if (!serviceRef.current) return;
     const currentCode = codeRef.current;
-    const service = getCoqService();
-    service.setCode(problem.prelude + '\n\n' + currentCode);
+    serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
     setProofState('in_progress');
-    await service.executeNext();
+    await serviceRef.current.executeNext();
   }, [problem.prelude, setProofState]);
 
   const handleExecutePrev = useCallback(async () => {
-    const service = getCoqService();
-    await service.executePrev();
+    if (!serviceRef.current) return;
+    await serviceRef.current.executePrev();
   }, []);
 
   const handleExecuteAll = useCallback(async () => {
+    if (!serviceRef.current) return;
     const currentCode = codeRef.current;
-    const service = getCoqService();
-    service.setCode(problem.prelude + '\n\n' + currentCode);
+    serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
     setProofState('in_progress');
-    await service.executeAll();
+    await serviceRef.current.executeAll();
   }, [problem.prelude, setProofState]);
 
   const handleReset = useCallback(async () => {
-    const service = getCoqService();
-    await service.reset();
+    if (!serviceRef.current) return;
+    await serviceRef.current.reset();
     resetCode(problem.template);
     setSubmissionResult(null);
     setProofState('not_started');
   }, [problem.template, resetCode, setProofState]);
 
   const handleSubmit = useCallback(async () => {
+    if (!serviceRef.current) return;
     incrementAttempts(problem.slug);
     saveCode();
 
     const currentCode = codeRef.current;
-    const service = getCoqService();
-    const result = await service.verify(problem.prelude, currentCode, problem.forbiddenTactics);
+    const result = await serviceRef.current.verify(problem.prelude, currentCode, problem.forbiddenTactics);
 
     if (result.success) {
       markCompleted(problem.slug);
@@ -125,13 +159,12 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
     }
   }, [hintsRevealed, problem.hints.length, problem.slug, incrementHints]);
 
-  // FIX #11: Use explicit proofState for completion check
   const isComplete = proofState === 'completed' && goals.length === 0;
 
   return (
-    <div className="h-[calc(100vh-64px)] flex">
+    <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row">
       {/* Left panel - Problem description */}
-      <div className="w-1/2 border-r overflow-hidden flex flex-col">
+      <div className="lg:w-1/2 h-1/3 lg:h-full border-b lg:border-b-0 lg:border-r overflow-hidden flex flex-col">
         <ProblemDescription
           problem={problem}
           hintsRevealed={hintsRevealed}
@@ -141,7 +174,26 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
       </div>
 
       {/* Right panel - Editor and goals */}
-      <div className="w-1/2 flex flex-col overflow-hidden">
+      <div className="lg:w-1/2 flex-1 lg:flex-none lg:h-full flex flex-col overflow-hidden">
+        {/* Status indicator */}
+        {(coqLoading || coqInitError) && (
+          <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/20 text-xs">
+            {coqLoading ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                <span className="text-muted-foreground">Initializing Coq runtime...</span>
+              </>
+            ) : coqInitError ? (
+              <>
+                <AlertCircle className="h-3 w-3 text-destructive" />
+                <span className="text-destructive" title={coqInitError}>
+                  Failed to initialize Coq: {coqInitError}
+                </span>
+              </>
+            ) : null}
+          </div>
+        )}
+
         {/* Toolbar */}
         <EditorToolbar
           status={status}
@@ -163,8 +215,8 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
             }`}
           >
             {submissionResult === 'success'
-              ? '✓ Accepted! Your proof is correct.'
-              : '✗ Not accepted. Check the errors below.'}
+              ? 'Accepted! Your proof is correct.'
+              : 'Not accepted. Check the errors below.'}
           </div>
         )}
 
@@ -181,17 +233,25 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
             />
           </div>
 
-          {/* Goals panel */}
-          <div className="h-1/3 min-h-[150px] border-t">
-            <div className="px-3 py-2 border-b bg-muted/30 text-sm font-medium">
-              Goals
-            </div>
-            <GoalsPanel
-              goals={goals}
-              isLoading={status === 'busy' || status === 'loading'}
-              isComplete={isComplete}
-              className="h-[calc(100%-37px)]"
-            />
+          {/* Goals panel - collapsible on mobile */}
+          <div className={`border-t transition-all duration-200 ${goalsExpanded ? 'h-1/3 min-h-[150px]' : 'h-auto'}`}>
+            <button
+              onClick={() => setGoalsExpanded(!goalsExpanded)}
+              className="w-full px-3 py-2 border-b bg-muted/30 text-sm font-medium flex items-center justify-between hover:bg-muted/50 transition-colors lg:cursor-default"
+            >
+              <span>Goals {goals.length > 0 && `(${goals.length})`}</span>
+              <span className="lg:hidden">
+                {goalsExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+              </span>
+            </button>
+            {goalsExpanded && (
+              <GoalsPanel
+                goals={goals}
+                isLoading={status === 'busy' || status === 'loading'}
+                isComplete={isComplete}
+                className="h-[calc(100%-37px)]"
+              />
+            )}
           </div>
         </div>
       </div>

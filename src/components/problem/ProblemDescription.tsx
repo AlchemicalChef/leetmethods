@@ -142,16 +142,18 @@ function FormattedDescription({ text }: { text: string }) {
     }
   };
 
+  // Use a ref counter to ensure unique keys across all inline elements
+  let inlineKeyCounter = 0;
+
   const formatInlineText = (line: string): React.ReactNode[] => {
     const result: React.ReactNode[] = [];
     let remaining = line;
-    let inlineKey = 0;
 
     while (remaining.length > 0) {
       // Bold
       const boldMatch = remaining.match(/^\*\*(.+?)\*\*/);
       if (boldMatch) {
-        result.push(<strong key={inlineKey++}>{boldMatch[1]}</strong>);
+        result.push(<strong key={`inline-${inlineKeyCounter++}`}>{boldMatch[1]}</strong>);
         remaining = remaining.slice(boldMatch[0].length);
         continue;
       }
@@ -159,7 +161,7 @@ function FormattedDescription({ text }: { text: string }) {
       // Italic
       const italicMatch = remaining.match(/^\*(.+?)\*/);
       if (italicMatch) {
-        result.push(<em key={inlineKey++}>{italicMatch[1]}</em>);
+        result.push(<em key={`inline-${inlineKeyCounter++}`}>{italicMatch[1]}</em>);
         remaining = remaining.slice(italicMatch[0].length);
         continue;
       }
@@ -168,7 +170,7 @@ function FormattedDescription({ text }: { text: string }) {
       const codeMatch = remaining.match(/^`([^`]+)`/);
       if (codeMatch) {
         result.push(
-          <code key={inlineKey++} className="bg-muted px-1 py-0.5 rounded text-sm font-mono">
+          <code key={`inline-${inlineKeyCounter++}`} className="bg-muted px-1 py-0.5 rounded text-sm font-mono">
             {codeMatch[1]}
           </code>
         );
@@ -179,14 +181,14 @@ function FormattedDescription({ text }: { text: string }) {
       // Regular text - find next special character or end
       const nextSpecial = remaining.search(/\*|`/);
       if (nextSpecial === -1) {
-        result.push(remaining);
+        result.push(<span key={`inline-${inlineKeyCounter++}`}>{remaining}</span>);
         break;
       } else if (nextSpecial === 0) {
         // Special char that didn't match patterns, add as text
-        result.push(remaining[0]);
+        result.push(<span key={`inline-${inlineKeyCounter++}`}>{remaining[0]}</span>);
         remaining = remaining.slice(1);
       } else {
-        result.push(remaining.slice(0, nextSpecial));
+        result.push(<span key={`inline-${inlineKeyCounter++}`}>{remaining.slice(0, nextSpecial)}</span>);
         remaining = remaining.slice(nextSpecial);
       }
     }

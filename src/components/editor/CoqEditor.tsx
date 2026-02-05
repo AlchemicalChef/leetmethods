@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { syntaxHighlighting, defaultHighlightStyle, bracketMatching } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { useTheme } from 'next-themes';
 import { coqLanguage } from '@/lib/coq/coq-syntax';
 
 interface CoqEditorProps {
@@ -15,7 +16,6 @@ interface CoqEditorProps {
   onExecutePrev?: () => void;
   onExecuteAll?: () => void;
   readOnly?: boolean;
-  theme?: 'light' | 'dark';
   className?: string;
 }
 
@@ -26,7 +26,6 @@ export function CoqEditor({
   onExecutePrev,
   onExecuteAll,
   readOnly = false,
-  theme = 'light',
   className = '',
 }: CoqEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,6 +34,18 @@ export function CoqEditor({
   const onExecuteNextRef = useRef(onExecuteNext);
   const onExecutePrevRef = useRef(onExecutePrev);
   const onExecuteAllRef = useRef(onExecuteAll);
+
+  // Get theme from next-themes
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure we're mounted before accessing theme (avoid hydration mismatch)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Determine editor theme based on resolved system theme
+  const editorTheme = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
 
   // Keep callback refs up to date
   useEffect(() => {
@@ -125,7 +136,7 @@ export function CoqEditor({
       EditorView.lineWrapping,
     ];
 
-    if (theme === 'dark') {
+    if (editorTheme === 'dark') {
       extensions.push(oneDark);
     }
 
@@ -153,7 +164,7 @@ export function CoqEditor({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme, readOnly, coqKeymap]);
+  }, [editorTheme, readOnly, coqKeymap]);
 
   // Update content when value changes externally
   useEffect(() => {
