@@ -20,8 +20,8 @@ export default function LearnPage() {
             icon={<BookOpen className="h-5 w-5" />}
             title="What is Coq?"
             description="Learn what Coq is and why formal verification matters"
-            href="/learn/intro"
-            badge="Beginner"
+            href="https://coq.inria.fr/about-coq"
+            badge="External"
           />
           <TopicCard
             icon={<Lightbulb className="h-5 w-5" />}
