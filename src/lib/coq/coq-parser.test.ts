@@ -274,7 +274,7 @@ describe('parseGoalData', () => {
 
   it('parses a single goal with no hypotheses', () => {
     const data = {
-      goals: [{ hyp: [], ccl: 'True' }],
+      goals: [{ hyp: [], ty: 'True' }],
     };
     expect(parseGoalData(data)).toEqual([
       { id: 1, hypotheses: [], conclusion: 'True' },
@@ -289,7 +289,7 @@ describe('parseGoalData', () => {
           [['B'], null, 'Prop'],
           [['H'], null, 'A /\\ B'],
         ],
-        ccl: 'B /\\ A',
+        ty: 'B /\\ A',
       }],
     };
     const result = parseGoalData(data);
@@ -307,7 +307,7 @@ describe('parseGoalData', () => {
     const data = {
       goals: [{
         hyp: [[['n'], null, 'nat']],
-        ccl: 'n = n',
+        ty: 'n = n',
       }],
     };
     const result = parseGoalData(data);
@@ -319,7 +319,7 @@ describe('parseGoalData', () => {
     const data = {
       goals: [{
         hyp: [[['x'], 'bool']],
-        ccl: 'True',
+        ty: 'True',
       }],
     };
     const result = parseGoalData(data);
@@ -331,7 +331,7 @@ describe('parseGoalData', () => {
     const data = {
       goals: [{
         hyp: [[['x'], '5', 'nat']],
-        ccl: 'x = 5',
+        ty: 'x = 5',
       }],
     };
     const result = parseGoalData(data);
@@ -343,7 +343,7 @@ describe('parseGoalData', () => {
     const data = {
       goals: [{
         hyp: [[['a', 'b', 'c'], null, 'nat']],
-        ccl: 'True',
+        ty: 'True',
       }],
     };
     const result = parseGoalData(data);
@@ -354,7 +354,7 @@ describe('parseGoalData', () => {
     const data = {
       goals: [{
         hyp: [['x', null, 'nat']],
-        ccl: 'True',
+        ty: 'True',
       }],
     };
     const result = parseGoalData(data);
@@ -366,7 +366,7 @@ describe('parseGoalData', () => {
     const data = {
       goals: [{
         hyp: [[['H'], null, ['Pp_string', 'A /\\ B']]],
-        ccl: ['Pp_glue', [['Pp_string', 'B'], ['Pp_string', ' /\\ '], ['Pp_string', 'A']]],
+        ty: ['Pp_glue', [['Pp_string', 'B'], ['Pp_string', ' /\\ '], ['Pp_string', 'A']]],
       }],
     };
     const result = parseGoalData(data);
@@ -377,9 +377,9 @@ describe('parseGoalData', () => {
   it('parses multiple goals with sequential IDs', () => {
     const data = {
       goals: [
-        { hyp: [], ccl: 'A' },
-        { hyp: [], ccl: 'B' },
-        { hyp: [], ccl: 'C' },
+        { hyp: [], ty: 'A' },
+        { hyp: [], ty: 'B' },
+        { hyp: [], ty: 'C' },
       ],
     };
     const result = parseGoalData(data);
@@ -391,10 +391,31 @@ describe('parseGoalData', () => {
 
   it('handles missing hyp field gracefully', () => {
     const data = {
-      goals: [{ ccl: 'True' }],
+      goals: [{ ty: 'True' }],
     };
     const result = parseGoalData(data);
     expect(result[0].hypotheses).toEqual([]);
     expect(result[0].conclusion).toBe('True');
+  });
+
+  it('reads conclusion from "ty" field (jsCoq actual format)', () => {
+    const data = {
+      goals: [{ hyp: [], ty: 'B /\\ A' }],
+    };
+    expect(parseGoalData(data)[0].conclusion).toBe('B /\\ A');
+  });
+
+  it('falls back to "ccl" when "ty" is absent', () => {
+    const data = {
+      goals: [{ hyp: [], ccl: 'fallback conclusion' }],
+    };
+    expect(parseGoalData(data)[0].conclusion).toBe('fallback conclusion');
+  });
+
+  it('prefers "ty" over "ccl" when both are present', () => {
+    const data = {
+      goals: [{ hyp: [], ty: 'from ty', ccl: 'from ccl' }],
+    };
+    expect(parseGoalData(data)[0].conclusion).toBe('from ty');
   });
 });

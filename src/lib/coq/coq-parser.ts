@@ -36,7 +36,7 @@ export function parseGoalData(goalData: any): CoqGoal[] {
       name: (Array.isArray(h[0]) ? h[0] : [h[0]]).join(', '),
       type: stripPpTags(h[2] ?? h[1]),
     })),
-    conclusion: stripPpTags(g.ccl),
+    conclusion: stripPpTags(g.ty ?? g.ccl),
   }));
 }
 
