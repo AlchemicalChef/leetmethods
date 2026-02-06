@@ -6,7 +6,6 @@ import {
   getProblemsByCategory,
   getProblemsByDifficulty,
 } from './loader';
-import type { Problem, ProblemSummary } from './types';
 
 // ---------------------------------------------------------------------------
 // getAllProblems

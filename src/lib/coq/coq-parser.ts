@@ -46,7 +46,7 @@ export function isProofStart(statement: string): boolean {
   const noComments = statement.replace(/\(\*[\s\S]*?\*\)/g, '');
   // Strip strings
   const noStrings = noComments.replace(/"[^"]*"/g, '');
-  return /^\s*Proof\b/i.test(noStrings);
+  return /^\s*Proof\b/.test(noStrings);
 }
 
 export function parseStatements(code: string): string[] {

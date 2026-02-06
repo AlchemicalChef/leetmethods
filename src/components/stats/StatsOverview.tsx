@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Target, Flame, Clock } from 'lucide-react';
@@ -8,7 +8,6 @@ import { useProgressStore } from '@/store/progressStore';
 import { computeStats, formatDuration } from '@/lib/stats';
 import type { ProblemSummary, Category } from '@/lib/problems/types';
 import { AchievementGrid } from '@/components/achievements/AchievementGrid';
-import type { StatsData } from '@/lib/stats';
 
 interface StatsOverviewProps {
   problems: ProblemSummary[];
@@ -34,13 +33,10 @@ const categoryColors: Record<Category, string> = {
 
 export function StatsOverview({ problems }: StatsOverviewProps) {
   const { progress, streakData } = useProgressStore();
-  const [stats, setStats] = useState<StatsData | null>(null);
-
-  useEffect(() => {
-    setStats(computeStats(progress, problems, streakData));
-  }, [progress, problems, streakData]);
-
-  if (!stats) return null;
+  const stats = useMemo(
+    () => computeStats(progress, problems, streakData),
+    [progress, problems, streakData]
+  );
 
   return (
     <div className="space-y-8">

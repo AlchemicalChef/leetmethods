@@ -1,35 +1,43 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // CORS headers required for SharedArrayBuffer (jsCoq Web Worker)
   async headers() {
-    return [
+    const securityHeaders = [
+      // CORS headers required for SharedArrayBuffer (jsCoq Web Worker)
       {
-        // Apply to all routes
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
-          },
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp',
-          },
-        ],
+        key: 'Cross-Origin-Opener-Policy',
+        value: 'same-origin',
       },
       {
-        // Specific headers for jsCoq files
+        key: 'Cross-Origin-Embedder-Policy',
+        value: 'require-corp',
+      },
+      // Security headers
+      {
+        key: 'X-Content-Type-Options',
+        value: 'nosniff',
+      },
+      {
+        key: 'Referrer-Policy',
+        value: 'strict-origin-when-cross-origin',
+      },
+      {
+        key: 'X-Frame-Options',
+        value: 'SAMEORIGIN',
+      },
+      {
+        key: 'Permissions-Policy',
+        value: 'camera=(), microphone=(), geolocation=()',
+      },
+    ];
+
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+      {
         source: '/jscoq/:path*',
-        headers: [
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
-          },
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp',
-          },
-        ],
+        headers: securityHeaders,
       },
     ];
   },

@@ -52,9 +52,7 @@ const executedTheme = EditorView.baseTheme({
   },
 });
 
-// Compartment for dynamic theme switching (avoids recreating the entire editor)
-const themeCompartment = new Compartment();
-const readOnlyCompartment = new Compartment();
+// Compartments are created per-instance via useRef to avoid sharing across multiple editors
 
 interface CoqEditorProps {
   value: string;
@@ -79,6 +77,8 @@ export function CoqEditor({
 }: CoqEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const themeCompartmentRef = useRef(new Compartment());
+  const readOnlyCompartmentRef = useRef(new Compartment());
   const onChangeRef = useRef(onChange);
   const onExecuteNextRef = useRef(onExecuteNext);
   const onExecutePrevRef = useRef(onExecutePrev);
@@ -181,8 +181,8 @@ export function CoqEditor({
       executedField,
       executedTheme,
       // Use compartments for dynamic reconfiguration
-      themeCompartment.of(editorTheme === 'dark' ? oneDark : []),
-      readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
+      themeCompartmentRef.current.of(editorTheme === 'dark' ? oneDark : []),
+      readOnlyCompartmentRef.current.of(EditorState.readOnly.of(readOnly)),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChangeRef.current(update.state.doc.toString());
@@ -217,7 +217,7 @@ export function CoqEditor({
     const view = viewRef.current;
     if (!view) return;
     view.dispatch({
-      effects: themeCompartment.reconfigure(editorTheme === 'dark' ? oneDark : []),
+      effects: themeCompartmentRef.current.reconfigure(editorTheme === 'dark' ? oneDark : []),
     });
   }, [editorTheme]);
 

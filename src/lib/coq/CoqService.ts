@@ -41,6 +41,7 @@ export class CoqService {
   private messageHandler: ((event: MessageEvent) => void) | null = null;
   private initTimeout: ReturnType<typeof setTimeout> | null = null;
   private goalResolvers: Array<() => void> = [];
+  private waitForGoalsTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(callbacks: CoqServiceCallbacks = {}) {
     this.callbacks = callbacks;
@@ -89,7 +90,8 @@ export class CoqService {
       this.callbacks.onReady?.();
       this.callbacks.onMessage?.({ type: 'info', content: 'Coq runtime initialized' });
     } catch (error) {
-      console.error('Failed to initialize jsCoq:', error);
+      // Clear initPromise so future initialize() calls can retry
+      this.initPromise = null;
       this.setStatus('error');
       const errorMsg = error instanceof Error ? error.message : 'Failed to initialize Coq runtime';
       this.callbacks.onError?.(errorMsg);
@@ -106,6 +108,11 @@ export class CoqService {
         this.iframe = null;
       }
 
+      // Guard against double resolve/reject after the init promise settles
+      let initSettled = false;
+      const safeResolve = () => { if (!initSettled) { initSettled = true; resolve(); } };
+      const safeReject = (err: Error) => { if (!initSettled) { initSettled = true; reject(err); } };
+
       // Set up message handler BEFORE creating iframe
       this.messageHandler = (event: MessageEvent) => {
         // Only accept messages from our own iframe, same origin
@@ -120,7 +127,7 @@ export class CoqService {
               clearTimeout(this.initTimeout);
               this.initTimeout = null;
             }
-            resolve();
+            safeResolve();
             break;
 
           case 'coq-error':
@@ -128,7 +135,7 @@ export class CoqService {
               clearTimeout(this.initTimeout);
               this.initTimeout = null;
             }
-            reject(new Error(data.error));
+            safeReject(new Error(data.error));
             break;
 
           case 'coq-goals':
@@ -183,11 +190,20 @@ export class CoqService {
       document.body.appendChild(iframe);
       this.iframe = iframe;
 
-      // Timeout for initialization
+      // Timeout for initialization - clean up iframe on timeout
       this.initTimeout = setTimeout(() => {
         this.initTimeout = null;
         if (this.status === 'loading') {
-          reject(new Error('Coq initialization timeout (60s)'));
+          // Clean up the half-initialized iframe
+          if (this.iframe) {
+            this.iframe.remove();
+            this.iframe = null;
+          }
+          if (this.messageHandler) {
+            window.removeEventListener('message', this.messageHandler);
+            this.messageHandler = null;
+          }
+          safeReject(new Error('Coq initialization timeout (60s)'));
         }
       }, 60000);
     });
@@ -232,11 +248,14 @@ export class CoqService {
   private waitForGoals(timeoutMs: number): Promise<void> {
     return new Promise(resolve => {
       const timer = setTimeout(() => {
+        this.waitForGoalsTimer = null;
         this.goalResolvers = this.goalResolvers.filter(r => r !== wrappedResolve);
         resolve();
       }, timeoutMs);
+      this.waitForGoalsTimer = timer;
       const wrappedResolve = () => {
         clearTimeout(timer);
+        this.waitForGoalsTimer = null;
         resolve();
       };
       this.goalResolvers.push(wrappedResolve);
@@ -523,6 +542,12 @@ export class CoqService {
       pending.reject(new Error('Service destroyed'));
     });
     this.pendingMessages.clear();
+
+    // Clear waitForGoals timer to prevent callbacks after destroy
+    if (this.waitForGoalsTimer) {
+      clearTimeout(this.waitForGoalsTimer);
+      this.waitForGoalsTimer = null;
+    }
 
     this.executedStatements = [];
     this.proofStarted = false;

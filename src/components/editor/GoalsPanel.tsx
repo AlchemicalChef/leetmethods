@@ -1,13 +1,12 @@
 'use client';
 
-import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, Info } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import type { CoqGoal } from '@/lib/coq/types';
 import type { CoqMessage } from '@/store/coqStore';
 import type { ProblemSummary } from '@/lib/problems/types';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 
 interface GoalsPanelProps {
   goals: CoqGoal[];

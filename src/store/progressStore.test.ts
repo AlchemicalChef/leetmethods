@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { updateStreak, getDateString } from './progressStore';
+import { updateStreak, getDateString, useProgressStore } from './progressStore';
 import type { StreakData } from './progressStore';
 
 // ---------------------------------------------------------------------------
@@ -264,5 +264,405 @@ describe('updateStreak', () => {
     // Should be the exact same reference (no-op)
     expect(secondResult).toBe(streak);
     expect(secondResult.currentStreak).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Zustand store actions
+// ---------------------------------------------------------------------------
+
+describe('useProgressStore - getProgress', () => {
+  beforeEach(() => {
+    useProgressStore.setState({
+      progress: {},
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+  });
+
+  it('returns undefined for unknown slug', () => {
+    const result = useProgressStore.getState().getProgress('unknown-problem');
+    expect(result).toBeUndefined();
+  });
+
+  it('returns entry after mutation', () => {
+    const { incrementAttempts, getProgress } = useProgressStore.getState();
+    incrementAttempts('two-sum');
+    const result = getProgress('two-sum');
+    expect(result).toBeDefined();
+    expect(result?.slug).toBe('two-sum');
+    expect(result?.attempts).toBe(1);
+  });
+});
+
+describe('useProgressStore - incrementAttempts', () => {
+  beforeEach(() => {
+    useProgressStore.setState({
+      progress: {},
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+  });
+
+  it('creates default entry and increments', () => {
+    const { incrementAttempts } = useProgressStore.getState();
+    incrementAttempts('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress).toBeDefined();
+    expect(progress.slug).toBe('two-sum');
+    expect(progress.attempts).toBe(1);
+    expect(progress.completed).toBe(false);
+    expect(progress.hintsUsed).toBe(0);
+  });
+
+  it('increments existing entry', () => {
+    useProgressStore.setState({
+      progress: {
+        'two-sum': {
+          slug: 'two-sum',
+          completed: false,
+          completedAt: null,
+          attempts: 3,
+          hintsUsed: 1,
+          solveStartedAt: null,
+          solveDurationMs: null,
+        },
+      },
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+    const { incrementAttempts } = useProgressStore.getState();
+    incrementAttempts('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress.attempts).toBe(4);
+    expect(progress.hintsUsed).toBe(1);
+  });
+
+  it('multiple increments accumulate', () => {
+    const { incrementAttempts } = useProgressStore.getState();
+    incrementAttempts('problem-1');
+    incrementAttempts('problem-1');
+    incrementAttempts('problem-1');
+    const progress = useProgressStore.getState().progress['problem-1'];
+    expect(progress.attempts).toBe(3);
+  });
+});
+
+describe('useProgressStore - incrementHints', () => {
+  beforeEach(() => {
+    useProgressStore.setState({
+      progress: {},
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+  });
+
+  it('creates default and increments', () => {
+    const { incrementHints } = useProgressStore.getState();
+    incrementHints('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress).toBeDefined();
+    expect(progress.slug).toBe('two-sum');
+    expect(progress.hintsUsed).toBe(1);
+    expect(progress.completed).toBe(false);
+    expect(progress.attempts).toBe(0);
+  });
+
+  it('increments existing', () => {
+    useProgressStore.setState({
+      progress: {
+        'two-sum': {
+          slug: 'two-sum',
+          completed: false,
+          completedAt: null,
+          attempts: 2,
+          hintsUsed: 1,
+          solveStartedAt: null,
+          solveDurationMs: null,
+        },
+      },
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+    const { incrementHints } = useProgressStore.getState();
+    incrementHints('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress.hintsUsed).toBe(2);
+    expect(progress.attempts).toBe(2);
+  });
+
+  it('multiple increments', () => {
+    const { incrementHints } = useProgressStore.getState();
+    incrementHints('problem-1');
+    incrementHints('problem-1');
+    const progress = useProgressStore.getState().progress['problem-1'];
+    expect(progress.hintsUsed).toBe(2);
+  });
+});
+
+describe('useProgressStore - markCompleted', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useProgressStore.setState({
+      progress: {},
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('marks slug completed with timestamp', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
+    const { markCompleted } = useProgressStore.getState();
+    markCompleted('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress.completed).toBe(true);
+    expect(progress.completedAt).toBe(new Date('2024-01-15T12:00:00Z').getTime());
+  });
+
+  it('stops running timer and calculates duration', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
+    const { startTimer, markCompleted } = useProgressStore.getState();
+    startTimer('two-sum');
+    vi.setSystemTime(new Date('2024-01-15T12:05:00Z'));
+    markCompleted('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress.completed).toBe(true);
+    expect(progress.solveStartedAt).toBe(null);
+    expect(progress.solveDurationMs).toBe(5 * 60 * 1000);
+  });
+
+  it('updates streak data', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
+    useProgressStore.setState({
+      progress: {},
+      streakData: { currentStreak: 2, longestStreak: 5, lastSolveDate: '2024-01-14' },
+    });
+    const { markCompleted } = useProgressStore.getState();
+    markCompleted('two-sum');
+    const streakData = useProgressStore.getState().streakData;
+    expect(streakData.currentStreak).toBe(3);
+    expect(streakData.lastSolveDate).toBe('2024-01-15');
+  });
+
+  it("doesn't re-increment attempts", () => {
+    useProgressStore.setState({
+      progress: {
+        'two-sum': {
+          slug: 'two-sum',
+          completed: false,
+          completedAt: null,
+          attempts: 5,
+          hintsUsed: 2,
+          solveStartedAt: null,
+          solveDurationMs: null,
+        },
+      },
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+    const { markCompleted } = useProgressStore.getState();
+    markCompleted('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress.attempts).toBe(5);
+    expect(progress.hintsUsed).toBe(2);
+  });
+});
+
+describe('useProgressStore - startTimer', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useProgressStore.setState({
+      progress: {},
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('sets solveStartedAt', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
+    const { startTimer } = useProgressStore.getState();
+    startTimer('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress.solveStartedAt).toBe(new Date('2024-01-15T12:00:00Z').getTime());
+    expect(progress.solveDurationMs).toBe(null);
+  });
+
+  it('no-op if already running', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
+    const { startTimer } = useProgressStore.getState();
+    startTimer('two-sum');
+    const firstStart = useProgressStore.getState().progress['two-sum'].solveStartedAt;
+    vi.setSystemTime(new Date('2024-01-15T12:05:00Z'));
+    startTimer('two-sum');
+    const secondStart = useProgressStore.getState().progress['two-sum'].solveStartedAt;
+    expect(firstStart).toBe(secondStart);
+  });
+
+  it('no-op if completed', () => {
+    useProgressStore.setState({
+      progress: {
+        'two-sum': {
+          slug: 'two-sum',
+          completed: true,
+          completedAt: Date.now(),
+          attempts: 1,
+          hintsUsed: 0,
+          solveStartedAt: null,
+          solveDurationMs: 1000,
+        },
+      },
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+    const { startTimer } = useProgressStore.getState();
+    startTimer('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress.solveStartedAt).toBe(null);
+  });
+});
+
+describe('useProgressStore - stopTimer', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useProgressStore.setState({
+      progress: {},
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('calculates elapsed time', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
+    const { startTimer, stopTimer } = useProgressStore.getState();
+    startTimer('two-sum');
+    vi.setSystemTime(new Date('2024-01-15T12:03:00Z'));
+    stopTimer('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress.solveStartedAt).toBe(null);
+    expect(progress.solveDurationMs).toBe(3 * 60 * 1000);
+  });
+
+  it('accumulates with existing duration', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
+    useProgressStore.setState({
+      progress: {
+        'two-sum': {
+          slug: 'two-sum',
+          completed: false,
+          completedAt: null,
+          attempts: 0,
+          hintsUsed: 0,
+          solveStartedAt: new Date('2024-01-15T12:00:00Z').getTime(),
+          solveDurationMs: 2000,
+        },
+      },
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+    vi.setSystemTime(new Date('2024-01-15T12:01:00Z'));
+    const { stopTimer } = useProgressStore.getState();
+    stopTimer('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress.solveDurationMs).toBe(2000 + 60 * 1000);
+  });
+
+  it('no-op when no timer running', () => {
+    const { stopTimer } = useProgressStore.getState();
+    stopTimer('two-sum');
+    const progress = useProgressStore.getState().progress['two-sum'];
+    expect(progress).toBeUndefined();
+  });
+});
+
+describe('useProgressStore - getCompletedCount / getCompletedSlugs', () => {
+  beforeEach(() => {
+    useProgressStore.setState({
+      progress: {},
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+  });
+
+  it('returns 0/empty initially', () => {
+    const { getCompletedCount, getCompletedSlugs } = useProgressStore.getState();
+    expect(getCompletedCount()).toBe(0);
+    expect(getCompletedSlugs()).toEqual([]);
+  });
+
+  it('counts completed entries', () => {
+    useProgressStore.setState({
+      progress: {
+        'problem-1': {
+          slug: 'problem-1',
+          completed: true,
+          completedAt: Date.now(),
+          attempts: 1,
+          hintsUsed: 0,
+          solveStartedAt: null,
+          solveDurationMs: 1000,
+        },
+        'problem-2': {
+          slug: 'problem-2',
+          completed: false,
+          completedAt: null,
+          attempts: 2,
+          hintsUsed: 1,
+          solveStartedAt: null,
+          solveDurationMs: null,
+        },
+        'problem-3': {
+          slug: 'problem-3',
+          completed: true,
+          completedAt: Date.now(),
+          attempts: 1,
+          hintsUsed: 0,
+          solveStartedAt: null,
+          solveDurationMs: 2000,
+        },
+      },
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+    const { getCompletedCount } = useProgressStore.getState();
+    expect(getCompletedCount()).toBe(2);
+  });
+
+  it('returns slugs of completed entries', () => {
+    useProgressStore.setState({
+      progress: {
+        'problem-1': {
+          slug: 'problem-1',
+          completed: true,
+          completedAt: Date.now(),
+          attempts: 1,
+          hintsUsed: 0,
+          solveStartedAt: null,
+          solveDurationMs: 1000,
+        },
+        'problem-2': {
+          slug: 'problem-2',
+          completed: false,
+          completedAt: null,
+          attempts: 2,
+          hintsUsed: 1,
+          solveStartedAt: null,
+          solveDurationMs: null,
+        },
+        'problem-3': {
+          slug: 'problem-3',
+          completed: true,
+          completedAt: Date.now(),
+          attempts: 1,
+          hintsUsed: 0,
+          solveStartedAt: null,
+          solveDurationMs: 2000,
+        },
+      },
+      streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
+    });
+    const { getCompletedSlugs } = useProgressStore.getState();
+    const slugs = getCompletedSlugs();
+    expect(slugs).toHaveLength(2);
+    expect(slugs).toContain('problem-1');
+    expect(slugs).toContain('problem-3');
   });
 });

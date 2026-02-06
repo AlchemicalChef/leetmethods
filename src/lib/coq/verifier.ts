@@ -2,7 +2,7 @@ import type { VerificationResult, CoqGoal, CoqMessage } from './types';
 
 // Known forbidden tactic patterns with specific regex handling
 const FORBIDDEN_TACTICS_PATTERNS: Record<string, RegExp> = {
-  admit: /\badmit\b/i,
+  admit: /\badmit\b/,
   Admitted: /\bAdmitted\b/,
   Abort: /\bAbort\b/,
   Axiom: /\bAxiom\b/,

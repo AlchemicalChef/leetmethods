@@ -35,6 +35,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const [coqInitError, setCoqInitError] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [executedUpTo, setExecutedUpTo] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
 
   // Use refs to capture values at execution time (avoid stale closures)
   const codeRef = useRef(code);
@@ -176,6 +177,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const handleSubmit = useCallback(async () => {
     if (!serviceRef.current || submittingRef.current) return;
     submittingRef.current = true;
+    setSubmissionResult(null);
 
     try {
       incrementAttempts(problem.slug);
@@ -231,12 +233,19 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     }
   }, [hintsRevealed, problem.hints.length, problem.slug, incrementHints]);
 
+  // Wait for client hydration before reading persisted store values
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   // Global ? key listener for shortcuts help
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
         const target = e.target as HTMLElement;
         if (target.closest('.cm-editor')) return;
+        const tagName = target.tagName.toLowerCase();
+        if (tagName === 'input' || tagName === 'textarea' || target.isContentEditable) return;
         setShortcutsOpen(true);
       }
     };
@@ -247,7 +256,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const isComplete = submissionResult === 'success' && proofState === 'completed' && goals.length === 0;
 
   const progress = getProgress(problem.slug);
-  const solutionAvailable = submissionResult === 'success' || progress?.completed || (progress?.attempts ?? 0) >= 5;
+  const solutionAvailable = hydrated && (submissionResult === 'success' || progress?.completed || (progress?.attempts ?? 0) >= 5);
   const progressMap = useProgressStore((s) => s.progress);
   const completedSlugs = useMemo(
     () => Object.values(progressMap).filter((p) => p.completed).map((p) => p.slug),
@@ -338,6 +347,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
         <div className={`border-t transition-all duration-200 ${goalsExpanded ? 'h-1/3 min-h-[150px]' : 'h-auto'}`}>
           <button
             onClick={() => setGoalsExpanded(!goalsExpanded)}
+            aria-label={goalsExpanded ? 'Collapse goals panel' : 'Expand goals panel'}
             className="w-full px-3 py-2 border-b bg-muted/30 text-sm font-medium flex items-center justify-between hover:bg-muted/50 transition-colors lg:cursor-default"
           >
             <span>Goals {goals.length > 0 && `(${goals.length})`}</span>

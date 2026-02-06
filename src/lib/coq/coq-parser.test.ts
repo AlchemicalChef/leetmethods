@@ -126,8 +126,8 @@ describe('isProofStart', () => {
     expect(isProofStart('  Proof.')).toBe(true);
   });
 
-  it('returns true for lowercase "proof." (case insensitive)', () => {
-    expect(isProofStart('proof.')).toBe(true);
+  it('returns false for lowercase "proof." (case-sensitive, Coq requires "Proof")', () => {
+    expect(isProofStart('proof.')).toBe(false);
   });
 
   it('returns false when Proof is inside a comment', () => {
@@ -150,8 +150,8 @@ describe('isProofStart', () => {
     expect(isProofStart('"Proof"')).toBe(false);
   });
 
-  it('returns true for "PROOF." (all caps, case insensitive)', () => {
-    expect(isProofStart('PROOF.')).toBe(true);
+  it('returns false for "PROOF." (case-sensitive, Coq requires "Proof")', () => {
+    expect(isProofStart('PROOF.')).toBe(false);
   });
 
   it('returns false for text before Proof keyword', () => {

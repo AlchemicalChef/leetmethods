@@ -62,16 +62,15 @@ describe('checkForbiddenTactics', () => {
 
   // --- Case sensitivity ---
 
-  it('"admit" pattern is case-insensitive (matches "Admit")', () => {
-    const result = checkForbiddenTactics('intros. Admit.', ['admit']);
+  it('"admit" pattern is case-sensitive (matches lowercase "admit")', () => {
+    const result = checkForbiddenTactics('intros. admit.', ['admit']);
     expect(result.hasForbidden).toBe(true);
     expect(result.found).toEqual(['admit']);
   });
 
-  it('"admit" pattern is case-insensitive (matches "ADMIT")', () => {
-    const result = checkForbiddenTactics('intros. ADMIT.', ['admit']);
-    expect(result.hasForbidden).toBe(true);
-    expect(result.found).toEqual(['admit']);
+  it('"admit" pattern is case-sensitive (does not match "Admit" or "ADMIT")', () => {
+    expect(checkForbiddenTactics('intros. Admit.', ['admit']).hasForbidden).toBe(false);
+    expect(checkForbiddenTactics('intros. ADMIT.', ['admit']).hasForbidden).toBe(false);
   });
 
   it('"Admitted" pattern is case-sensitive (does not match "admitted")', () => {

@@ -100,6 +100,7 @@ export function ProblemDescription({
           <Card className="overflow-hidden">
             <button
               onClick={() => setShowPrelude(!showPrelude)}
+              aria-label={showPrelude ? 'Hide prelude code' : 'Show prelude code'}
               className="w-full flex items-center gap-2 p-3 hover:bg-muted/50 transition-colors"
             >
               {showPrelude ? (
@@ -162,6 +163,7 @@ function SolutionReveal({ solution }: { solution: string }) {
     <Card className="border-amber-200 dark:border-amber-800 overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
+        aria-label={expanded ? 'Hide reference solution' : 'Show reference solution'}
         className="w-full flex items-center gap-2 p-3 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-colors"
       >
         {expanded ? (
