@@ -139,7 +139,7 @@ npm run lint     # Run ESLint
 
 ## Architecture
 
-jsCoq runs inside a hidden iframe (`public/coq-worker.html`) to isolate it from the Next.js environment. The `CoqService` class in `src/lib/coq/CoqService.ts` communicates with the iframe via `postMessage`. This architecture avoids conflicts between jsCoq's internal state machine and Next.js's runtime.
+jsCoq runs inside a hidden iframe (`public/coq-worker.html`) to isolate it from the Next.js environment. The `CoqService` class in `src/lib/coq/CoqService.ts` communicates with the iframe via `postMessage`. This architecture avoids conflicts between jsCoq's internal state machine and Next.js's runtime, also i have great disdain for next.js
 
 ## License
 
