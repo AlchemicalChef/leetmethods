@@ -1,13 +1,60 @@
 'use client';
 
 import { useEffect, useRef, useMemo, useState } from 'react';
-import { EditorState } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view';
+import { EditorState, StateEffect, StateField, Compartment, type Range } from '@codemirror/state';
+import { EditorView, Decoration, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { syntaxHighlighting, defaultHighlightStyle, bracketMatching } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { useTheme } from 'next-themes';
 import { coqLanguage } from '@/lib/coq/coq-syntax';
+import { coqAutocomplete } from '@/lib/coq/coq-autocomplete';
+import { coqHoverTooltip } from '@/lib/coq/coq-hover';
+
+// Execution highlight decorations
+const setExecutedUpTo = StateEffect.define<number>();
+
+const executedLineDeco = Decoration.line({ class: 'cm-executed-line' });
+
+const executedField = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(decos, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setExecutedUpTo)) {
+        const offset = effect.value;
+        if (offset <= 0) return Decoration.none;
+        const doc = tr.state.doc;
+        const endLine = doc.lineAt(Math.min(offset, doc.length)).number;
+        const builder: Range<Decoration>[] = [];
+        for (let i = 1; i <= endLine; i++) {
+          builder.push(executedLineDeco.range(doc.line(i).from));
+        }
+        return Decoration.set(builder);
+      }
+    }
+    // Clear decorations when document is edited to avoid misaligned highlights
+    if (tr.docChanged) {
+      return Decoration.none;
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+const executedTheme = EditorView.baseTheme({
+  '.cm-executed-line': {
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+  },
+  '&dark .cm-executed-line': {
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+  },
+});
+
+// Compartment for dynamic theme switching (avoids recreating the entire editor)
+const themeCompartment = new Compartment();
+const readOnlyCompartment = new Compartment();
 
 interface CoqEditorProps {
   value: string;
@@ -15,6 +62,7 @@ interface CoqEditorProps {
   onExecuteNext?: () => void;
   onExecutePrev?: () => void;
   onExecuteAll?: () => void;
+  executedUpTo?: number;
   readOnly?: boolean;
   className?: string;
 }
@@ -25,6 +73,7 @@ export function CoqEditor({
   onExecuteNext,
   onExecutePrev,
   onExecuteAll,
+  executedUpTo = 0,
   readOnly = false,
   className = '',
 }: CoqEditorProps) {
@@ -107,8 +156,7 @@ export function CoqEditor({
     },
   ]), []);
 
-  // Initialize editor
-  // FIX #5: Store view in local variable for cleanup to avoid race conditions
+  // Initialize editor (only on mount / readOnly change)
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -128,6 +176,13 @@ export function CoqEditor({
       syntaxHighlighting(defaultHighlightStyle),
       keymap.of([...defaultKeymap, ...historyKeymap]),
       coqKeymap,
+      coqAutocomplete,
+      coqHoverTooltip,
+      executedField,
+      executedTheme,
+      // Use compartments for dynamic reconfiguration
+      themeCompartment.of(editorTheme === 'dark' ? oneDark : []),
+      readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChangeRef.current(update.state.doc.toString());
@@ -135,14 +190,6 @@ export function CoqEditor({
       }),
       EditorView.lineWrapping,
     ];
-
-    if (editorTheme === 'dark') {
-      extensions.push(oneDark);
-    }
-
-    if (readOnly) {
-      extensions.push(EditorState.readOnly.of(true));
-    }
 
     const state = EditorState.create({
       doc: value,
@@ -156,7 +203,6 @@ export function CoqEditor({
 
     viewRef.current = view;
 
-    // FIX #5: Capture view in closure for cleanup
     return () => {
       view.destroy();
       if (viewRef.current === view) {
@@ -164,7 +210,23 @@ export function CoqEditor({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editorTheme, readOnly, coqKeymap]);
+  }, [readOnly]);
+
+  // Dynamically switch theme without recreating editor (preserves cursor, undo, scroll)
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: themeCompartment.reconfigure(editorTheme === 'dark' ? oneDark : []),
+    });
+  }, [editorTheme]);
+
+  // Update execution highlighting
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({ effects: setExecutedUpTo.of(executedUpTo) });
+  }, [executedUpTo]);
 
   // Update content when value changes externally
   useEffect(() => {

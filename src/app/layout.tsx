@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Navbar } from '@/components/navbar';
+import { AchievementToast } from '@/components/achievements/AchievementToast';
 import './globals.css';
 
 const geistSans = localFont({
@@ -33,6 +34,7 @@ export default function RootLayout({
           <div className="min-h-screen flex flex-col">
             <Navbar />
             <main className="flex-1">{children}</main>
+            <AchievementToast />
           </div>
         </ThemeProvider>
       </body>

@@ -1,22 +1,45 @@
 import type { VerificationResult, CoqGoal, CoqMessage } from './types';
 
-// FIX #3: Don't use global flag to avoid regex state issues
-// Instead, create fresh regex each time or use test without global flag
+// Known forbidden tactic patterns with specific regex handling
 const FORBIDDEN_TACTICS_PATTERNS: Record<string, RegExp> = {
-  admit: /\badmit\b/i,      // Removed 'g' flag
-  Admitted: /\bAdmitted\b/, // Removed 'g' flag
-  Abort: /\bAbort\b/,       // Removed 'g' flag
+  admit: /\badmit\b/i,
+  Admitted: /\bAdmitted\b/,
+  Abort: /\bAbort\b/,
+  Axiom: /\bAxiom\b/,
+  Parameter: /\bParameter\b/,
+  Conjecture: /\bConjecture\b/,
 };
+
+/** Strip Coq comments before checking for forbidden tactics */
+function stripCoqComments(code: string): string {
+  let result = '';
+  let depth = 0;
+  for (let i = 0; i < code.length; i++) {
+    if (code[i] === '(' && code[i + 1] === '*') {
+      depth++;
+      i++;
+    } else if (code[i] === '*' && code[i + 1] === ')' && depth > 0) {
+      depth--;
+      i++;
+    } else if (depth === 0) {
+      result += code[i];
+    }
+  }
+  return result;
+}
 
 export function checkForbiddenTactics(
   code: string,
   forbiddenTactics: string[]
 ): { hasForbidden: boolean; found: string[] } {
   const found: string[] = [];
+  const stripped = stripCoqComments(code);
 
   for (const tactic of forbiddenTactics) {
-    const pattern = FORBIDDEN_TACTICS_PATTERNS[tactic];
-    if (pattern && pattern.test(code)) {
+    // Use known pattern or dynamically create a word-boundary regex
+    const pattern = FORBIDDEN_TACTICS_PATTERNS[tactic]
+      ?? new RegExp(`\\b${tactic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    if (pattern.test(stripped)) {
       found.push(tactic);
     }
   }
@@ -28,9 +51,10 @@ export function checkForbiddenTactics(
 }
 
 export function isProofComplete(code: string): boolean {
-  // Check if code ends with Qed. (allowing for whitespace/comments after)
-  const qedPattern = /\bQed\s*\.\s*(?:$|\(\*[\s\S]*?\*\)\s*$)/m;
-  return qedPattern.test(code);
+  // Strip comments first to avoid matching Qed/Defined inside comments
+  const stripped = stripCoqComments(code);
+  const terminatorPattern = /\b(?:Qed|Defined)\s*\.\s*$/m;
+  return terminatorPattern.test(stripped.trim());
 }
 
 export function createVerificationResult(
@@ -54,84 +78,3 @@ export function createVerificationResult(
   };
 }
 
-export function parseGoalsFromHtml(html: string): CoqGoal[] {
-  // jsCoq returns goals as HTML, parse them into structured data
-  const goals: CoqGoal[] = [];
-
-  // Match goal blocks - create fresh regex for each call
-  const goalPattern = /<div class="goal[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
-  let match;
-  let id = 1;
-
-  while ((match = goalPattern.exec(html)) !== null) {
-    const goalHtml = match[1];
-
-    // Extract hypotheses - create fresh regex for each goal
-    const hypPattern = /<span class="hyp-name[^"]*">([^<]+)<\/span>[^<]*<span class="hyp-type[^"]*">([^<]+)<\/span>/gi;
-    const hypotheses: { name: string; type: string }[] = [];
-    let hypMatch;
-
-    while ((hypMatch = hypPattern.exec(goalHtml)) !== null) {
-      hypotheses.push({
-        name: hypMatch[1].trim(),
-        type: hypMatch[2].trim(),
-      });
-    }
-
-    // Extract conclusion
-    const conclusionPattern = /<span class="goal-conclusion[^"]*">([^<]+)<\/span>/i;
-    const conclusionMatch = goalHtml.match(conclusionPattern);
-    const conclusion = conclusionMatch ? conclusionMatch[1].trim() : '';
-
-    goals.push({ id: id++, hypotheses, conclusion });
-  }
-
-  return goals;
-}
-
-export function parseGoalsFromText(text: string): CoqGoal[] {
-  // Parse text-format goals (fallback)
-  const goals: CoqGoal[] = [];
-  const lines = text.split('\n');
-
-  let currentGoal: CoqGoal | null = null;
-  let inHypotheses = true;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // Goal separator
-    if (trimmed.match(/^=+$/)) {
-      inHypotheses = false;
-      continue;
-    }
-
-    // New goal indicator
-    if (trimmed.match(/^\d+ (?:goal|subgoal)/i)) {
-      continue;
-    }
-
-    if (inHypotheses && trimmed.includes(':')) {
-      const [name, ...typeParts] = trimmed.split(':');
-      if (currentGoal) {
-        currentGoal.hypotheses.push({
-          name: name.trim(),
-          type: typeParts.join(':').trim(),
-        });
-      }
-    } else if (!inHypotheses && trimmed) {
-      if (!currentGoal) {
-        currentGoal = {
-          id: goals.length + 1,
-          hypotheses: [],
-          conclusion: trimmed,
-        };
-        goals.push(currentGoal);
-      } else {
-        currentGoal.conclusion += ' ' + trimmed;
-      }
-    }
-  }
-
-  return goals;
-}

@@ -1,0 +1,19 @@
+{
+  "id": "13",
+  "slug": "bst-insert-member",
+  "title": "BST Insert Contains Element",
+  "difficulty": "hard",
+  "category": "data-structures",
+  "tags": ["trees", "BST", "search"],
+  "description": "Prove that after inserting a value into a BST, the `member` function finds it.\n\n**Goal:** `forall (x : nat) (t : ntree), member x (insert x t) = true`\n\nWe define a simple binary search tree over natural numbers with `insert` and `member` operations using `Nat.compare`.",
+  "hints": [
+    "Use `induction t` to perform structural induction on the tree",
+    "In the `NNode` case, use `simpl` and then `destruct (Nat.compare x n) eqn:Hcmp` to case-split on the comparison",
+    "For the `Eq` case, `simpl` and `rewrite Hcmp` will close the goal",
+    "For the `Lt` and `Gt` cases, `simpl`, `rewrite Hcmp`, and the induction hypothesis close the goal"
+  ],
+  "prelude": "Require Import Arith.\nRequire Import PeanoNat.\n\nInductive ntree : Type :=\n  | NLeaf : ntree\n  | NNode : nat -> ntree -> ntree -> ntree.\n\nFixpoint insert (x : nat) (t : ntree) : ntree :=\n  match t with\n  | NLeaf => NNode x NLeaf NLeaf\n  | NNode n l r =>\n    match Nat.compare x n with\n    | Lt => NNode n (insert x l) r\n    | Eq => NNode n l r\n    | Gt => NNode n l (insert x r)\n    end\n  end.\n\nFixpoint member (x : nat) (t : ntree) : bool :=\n  match t with\n  | NLeaf => false\n  | NNode n l r =>\n    match Nat.compare x n with\n    | Lt => member x l\n    | Eq => true\n    | Gt => member x r\n    end\n  end.",
+  "template": "Theorem insert_member : forall (x : nat) (t : ntree), member x (insert x t) = true.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem insert_member : forall (x : nat) (t : ntree), member x (insert x t) = true.\nProof.\n  intros x t.\n  induction t as [| n l IHl r IHr].\n  - simpl. rewrite Nat.compare_refl. reflexivity.\n  - simpl. destruct (Nat.compare x n) eqn:Hcmp.\n    + simpl. rewrite Hcmp. reflexivity.\n    + simpl. rewrite Hcmp. apply IHl.\n    + simpl. rewrite Hcmp. apply IHr.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Code2, Menu, X } from 'lucide-react';
+import { BookOpen, Code2, Menu, X, BarChart3 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 
@@ -32,6 +32,13 @@ export function Navbar() {
           >
             <BookOpen className="h-4 w-4" />
             Learn
+          </Link>
+          <Link
+            href="/stats"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Stats
           </Link>
           <ThemeToggle />
         </div>
@@ -68,6 +75,14 @@ export function Navbar() {
             >
               <BookOpen className="h-4 w-4" />
               Learn
+            </Link>
+            <Link
+              href="/stats"
+              className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2 flex items-center gap-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Stats
             </Link>
           </div>
         </div>

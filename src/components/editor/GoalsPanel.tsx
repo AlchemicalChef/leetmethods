@@ -5,16 +5,20 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import type { CoqGoal } from '@/lib/coq/types';
 import type { CoqMessage } from '@/store/coqStore';
+import type { ProblemSummary } from '@/lib/problems/types';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 interface GoalsPanelProps {
   goals: CoqGoal[];
   messages?: CoqMessage[];
   isLoading?: boolean;
   isComplete?: boolean;
+  nextProblem?: ProblemSummary | null;
   className?: string;
 }
 
-export function GoalsPanel({ goals, messages = [], isLoading, isComplete, className = '' }: GoalsPanelProps) {
+export function GoalsPanel({ goals, messages = [], isLoading, isComplete, nextProblem, className = '' }: GoalsPanelProps) {
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center h-full bg-muted/30 ${className}`}>
@@ -33,6 +37,15 @@ export function GoalsPanel({ goals, messages = [], isLoading, isComplete, classN
           <div className="text-2xl mb-2">✓</div>
           <div className="text-green-700 dark:text-green-400 font-medium">No more goals</div>
           <div className="text-sm text-muted-foreground mt-1">Proof complete!</div>
+          {nextProblem && (
+            <Link
+              href={`/problems/${nextProblem.slug}`}
+              className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-3"
+            >
+              Next: {nextProblem.title}
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          )}
         </div>
       </div>
     );
@@ -58,7 +71,7 @@ export function GoalsPanel({ goals, messages = [], isLoading, isComplete, classN
         {recentMessages.length > 0 && (
           <div className="space-y-2">
             {recentMessages.map((msg, i) => (
-              <MessageDisplay key={msg.timestamp + i} message={msg} />
+              <MessageDisplay key={`${msg.timestamp}-${i}`} message={msg} />
             ))}
           </div>
         )}

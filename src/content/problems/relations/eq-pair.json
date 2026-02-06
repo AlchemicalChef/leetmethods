@@ -1,0 +1,18 @@
+{
+  "id": "16",
+  "slug": "eq-pair",
+  "title": "Equality on Pairs",
+  "difficulty": "hard",
+  "category": "relations",
+  "tags": ["relations", "equality", "pairs"],
+  "description": "Prove that if two pairs are equal, then their first and second components are equal, and conversely.\n\n**Goal:** `forall (A B : Type) (a1 a2 : A) (b1 b2 : B), (a1, b1) = (a2, b2) <-> a1 = a2 /\\ b1 = b2`\n\nThis captures the fundamental property that pair equality is determined component-wise.",
+  "hints": [
+    "Use `split` to handle both directions of `<->`",
+    "For the forward direction, use `intros H` then `injection H` to extract component equalities",
+    "For the reverse direction, use `intros [Ha Hb]` to destructure the conjunction, then `rewrite Ha` and `rewrite Hb`"
+  ],
+  "prelude": "(* No special imports needed - pairs and basic logic are built-in *)",
+  "template": "Theorem eq_pair : forall (A B : Type) (a1 a2 : A) (b1 b2 : B),\n  (a1, b1) = (a2, b2) <-> a1 = a2 /\\ b1 = b2.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem eq_pair : forall (A B : Type) (a1 a2 : A) (b1 b2 : B),\n  (a1, b1) = (a2, b2) <-> a1 = a2 /\\ b1 = b2.\nProof.\n  intros A B a1 a2 b1 b2.\n  split.\n  - intros H. injection H as Ha Hb. split; assumption.\n  - intros [Ha Hb]. rewrite Ha. rewrite Hb. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

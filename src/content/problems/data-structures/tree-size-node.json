@@ -1,0 +1,18 @@
+{
+  "id": "12",
+  "slug": "tree-size-node",
+  "title": "Node Tree Has Positive Size",
+  "difficulty": "medium",
+  "category": "data-structures",
+  "tags": ["trees", "natural numbers"],
+  "description": "Prove that a tree constructed with `Node` has a size of at least 1.\n\n**Goal:** `forall (A : Type) (x : A) (l r : tree A), 1 <= size (Node x l r)`\n\nThe `size` function counts the total number of nodes in a tree. A `Node` always contributes at least 1 to the size.",
+  "hints": [
+    "Start with `intros` to introduce all variables",
+    "Use `simpl` to unfold the definition of `size` on `Node x l r`",
+    "The result reduces to showing `1 <= 1 + (size l + size r)` — use `lia` or basic arithmetic lemmas"
+  ],
+  "prelude": "Require Import Arith.\nRequire Import Lia.\n\nInductive tree (A : Type) : Type :=\n  | Leaf : tree A\n  | Node : A -> tree A -> tree A -> tree A.\n\nArguments Leaf {A}.\nArguments Node {A} _ _ _.\n\nFixpoint size {A : Type} (t : tree A) : nat :=\n  match t with\n  | Leaf => 0\n  | Node _ l r => 1 + size l + size r\n  end.",
+  "template": "Theorem size_node_positive : forall (A : Type) (x : A) (l r : tree A), 1 <= size (Node x l r).\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem size_node_positive : forall (A : Type) (x : A) (l r : tree A), 1 <= size (Node x l r).\nProof.\n  intros A x l r.\n  simpl.\n  lia.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ChevronDown, ChevronRight, Lightbulb, BookOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, Lightbulb, BookOpen, Eye } from 'lucide-react';
 import type { Problem, Difficulty } from '@/lib/problems/types';
 
 interface ProblemDescriptionProps {
   problem: Problem;
   hintsRevealed: number;
   onRevealHint: () => void;
+  solutionAvailable?: boolean;
   className?: string;
 }
 
@@ -26,6 +27,7 @@ export function ProblemDescription({
   problem,
   hintsRevealed,
   onRevealHint,
+  solutionAvailable = false,
   className = '',
 }: ProblemDescriptionProps) {
   const [showPrelude, setShowPrelude] = useState(false);
@@ -119,8 +121,65 @@ export function ProblemDescription({
             )}
           </Card>
         )}
+
+        {/* Solution reveal */}
+        {solutionAvailable && problem.solution && (
+          <SolutionReveal solution={problem.solution} />
+        )}
       </div>
     </ScrollArea>
+  );
+}
+
+function SolutionReveal({ solution }: { solution: string }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  if (!confirmed) {
+    return (
+      <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Eye className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <span className="font-medium text-amber-800 dark:text-amber-300">Reference Solution</span>
+        </div>
+        <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+          Are you sure you want to see the solution? Try solving it yourself first!
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setConfirmed(true)}
+          className="border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+        >
+          <Eye className="h-3 w-3 mr-1" />
+          Show Solution
+        </Button>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-amber-200 dark:border-amber-800 overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-2 p-3 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-colors"
+      >
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 text-amber-600" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-amber-600" />
+        )}
+        <Eye className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        <span className="font-medium text-amber-800 dark:text-amber-300">Reference Solution</span>
+      </button>
+      {expanded && (
+        <div className="border-t border-amber-200 dark:border-amber-800 bg-muted/20">
+          <pre className="p-4 text-sm font-mono overflow-x-auto">
+            <code>{solution}</code>
+          </pre>
+        </div>
+      )}
+    </Card>
   );
 }
 

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { ProblemSolver } from '@/components/problem/ProblemSolver';
-import { getAllProblems } from '@/lib/problems/loader';
+import { getAllProblems, getProblemSummaries } from '@/lib/problems/loader';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -22,5 +22,7 @@ export default async function ProblemPage({ params }: Props) {
     notFound();
   }
 
-  return <ProblemSolver problem={problem} />;
+  const allProblems = await getProblemSummaries();
+
+  return <ProblemSolver problem={problem} allProblems={allProblems} />;
 }

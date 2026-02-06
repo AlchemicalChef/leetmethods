@@ -12,6 +12,12 @@ import listLengthAppProblem from '@/content/problems/lists/list-length-app.json'
 import listRevRevProblem from '@/content/problems/lists/list-rev-rev.json';
 import evenDoubleProblem from '@/content/problems/arithmetic/even-double.json';
 import addAssocProblem from '@/content/problems/arithmetic/add-assoc.json';
+import treeMirrorProblem from '@/content/problems/data-structures/tree-mirror.json';
+import treeSizeNodeProblem from '@/content/problems/data-structures/tree-size-node.json';
+import bstInsertMemberProblem from '@/content/problems/data-structures/bst-insert-member.json';
+import leReflProblem from '@/content/problems/relations/le-refl.json';
+import leTransProblem from '@/content/problems/relations/le-trans.json';
+import eqPairProblem from '@/content/problems/relations/eq-pair.json';
 
 const problems: Problem[] = [
   modusPonensProblem as Problem,
@@ -24,6 +30,12 @@ const problems: Problem[] = [
   listRevRevProblem as Problem,
   evenDoubleProblem as Problem,
   addAssocProblem as Problem,
+  treeMirrorProblem as Problem,
+  treeSizeNodeProblem as Problem,
+  bstInsertMemberProblem as Problem,
+  leReflProblem as Problem,
+  leTransProblem as Problem,
+  eqPairProblem as Problem,
 ];
 
 export async function getAllProblems(): Promise<Problem[]> {

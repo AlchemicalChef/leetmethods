@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Play, StepForward, StepBack, RotateCcw, Check, Loader2, AlertCircle } from 'lucide-react';
+import { Play, StepForward, StepBack, RotateCcw, Check, Loader2, AlertCircle, HelpCircle } from 'lucide-react';
 import type { CoqWorkerStatus } from '@/lib/coq/types';
 
 interface EditorToolbarProps {
@@ -11,6 +11,7 @@ interface EditorToolbarProps {
   onExecuteAll: () => void;
   onReset: () => void;
   onSubmit: () => void;
+  onShowShortcuts?: () => void;
   canSubmit?: boolean;
 }
 
@@ -21,6 +22,7 @@ export function EditorToolbar({
   onExecuteAll,
   onReset,
   onSubmit,
+  onShowShortcuts,
   canSubmit = true,
 }: EditorToolbarProps) {
   const isReady = status === 'ready';
@@ -84,6 +86,20 @@ export function EditorToolbar({
           <span className="text-xs text-red-500 ml-2 hidden sm:inline">
             Click Reset to recover
           </span>
+        )}
+
+        {onShowShortcuts && (
+          <>
+            <div className="w-px h-5 bg-border mx-2" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onShowShortcuts}
+              title="Keyboard shortcuts (?)"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
+          </>
         )}
       </div>
 

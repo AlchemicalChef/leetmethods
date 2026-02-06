@@ -1,0 +1,18 @@
+{
+  "id": "14",
+  "slug": "le-refl",
+  "title": "Less-or-Equal is Reflexive",
+  "difficulty": "easy",
+  "category": "relations",
+  "tags": ["relations", "inequality"],
+  "description": "Prove that every natural number is less than or equal to itself.\n\n**Goal:** `forall n : nat, n <= n`\n\nIn Coq, `n <= m` is defined inductively as `le n m`. Reflexivity (`le_n`) gives you `n <= n` directly.",
+  "hints": [
+    "Use `intros` to introduce `n`",
+    "The `apply le_n` tactic directly proves `n <= n` using the base constructor of `le`",
+    "Alternatively, `lia` or `auto` can solve this automatically"
+  ],
+  "prelude": "Require Import Arith.",
+  "template": "Theorem le_reflexive : forall n : nat, n <= n.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem le_reflexive : forall n : nat, n <= n.\nProof.\n  intro n.\n  apply le_n.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

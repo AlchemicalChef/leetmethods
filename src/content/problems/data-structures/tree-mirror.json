@@ -1,0 +1,18 @@
+{
+  "id": "11",
+  "slug": "tree-mirror",
+  "title": "Mirror of Mirror is Identity",
+  "difficulty": "easy",
+  "category": "data-structures",
+  "tags": ["trees", "induction"],
+  "description": "Prove that mirroring a binary tree twice gives back the original tree.\n\n**Goal:** `forall (A : Type) (t : tree A), mirror (mirror t) = t`\n\nA binary tree can be a `Leaf` or a `Node` with a value and two subtrees. Mirroring swaps the left and right children recursively.",
+  "hints": [
+    "Use `induction t` to perform structural induction on the tree",
+    "In the `Node` case, `simpl` will unfold the definition of `mirror`",
+    "Use `rewrite IHt1` and `rewrite IHt2` to apply the induction hypotheses for both subtrees"
+  ],
+  "prelude": "Inductive tree (A : Type) : Type :=\n  | Leaf : tree A\n  | Node : A -> tree A -> tree A -> tree A.\n\nArguments Leaf {A}.\nArguments Node {A} _ _ _.\n\nFixpoint mirror {A : Type} (t : tree A) : tree A :=\n  match t with\n  | Leaf => Leaf\n  | Node x l r => Node x (mirror r) (mirror l)\n  end.",
+  "template": "Theorem mirror_mirror : forall (A : Type) (t : tree A), mirror (mirror t) = t.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem mirror_mirror : forall (A : Type) (t : tree A), mirror (mirror t) = t.\nProof.\n  intros A t.\n  induction t as [| x l IHl r IHr].\n  - simpl. reflexivity.\n  - simpl. rewrite IHl. rewrite IHr. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

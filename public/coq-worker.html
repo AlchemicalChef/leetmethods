@@ -38,6 +38,29 @@ Qed.
     let mgr = null;
     let ready = false;
 
+    /** Convert jsCoq Pp AST objects to plain text strings */
+    function ppToString(pp) {
+      // If mgr has a pretty-printer, use it
+      if (mgr && mgr.pprint && typeof mgr.pprint.pp2Text === 'function') {
+        try { return mgr.pprint.pp2Text(pp); } catch(e) { /* fallback below */ }
+      }
+      // Already a string
+      if (typeof pp === 'string') return pp;
+      // Recursively walk the Pp AST: ['Pp_glue', [...children]] / ['Pp_string', 'text'] / etc.
+      if (Array.isArray(pp)) {
+        var tag = pp[0];
+        if (tag === 'Pp_string') return pp[1] || '';
+        if (tag === 'Pp_glue' || tag === 'Pp_box') return (pp[1] || []).map(ppToString).join('');
+        if (tag === 'Pp_tag')  return ppToString(pp[2]);
+        if (tag === 'Pp_force_newline' || tag === 'Pp_print_break') return ' ';
+        // Unknown tag — try to concatenate children
+        return pp.slice(1).map(function(c) {
+          return Array.isArray(c) ? (typeof c[0] === 'string' && c[0].startsWith('Pp_') ? ppToString(c) : c.map(ppToString).join('')) : String(c);
+        }).join('');
+      }
+      return String(pp);
+    }
+
     JsCoq.start(jscoq_ids, jscoq_opts).then(manager => {
       mgr = manager;
       console.log('[coq-worker] JsCoq started');
@@ -50,22 +73,22 @@ Qed.
           mgr.coq.observers.push({
             coqGoalInfo(sid, goals) {
               if (window.parent !== window) {
-                parent.postMessage({ type: 'coq-goals', goals: goals }, '*');
+                parent.postMessage({ type: 'coq-goals', goals: goals }, PARENT_ORIGIN);
               }
             },
             coqError(sid, loc, msg) {
               if (window.parent !== window) {
-                parent.postMessage({ type: 'coq-exec-error', sid, error: String(msg) }, '*');
+                parent.postMessage({ type: 'coq-exec-error', sid, error: ppToString(msg) }, PARENT_ORIGIN);
               }
             },
             coqLog(level, msg) {
               if (level === 'Error' && window.parent !== window) {
-                parent.postMessage({ type: 'coq-log-error', error: String(msg) }, '*');
+                parent.postMessage({ type: 'coq-log-error', error: ppToString(msg) }, PARENT_ORIGIN);
               }
             },
             feedAddedAxiom(sid) {
               if (window.parent !== window) {
-                parent.postMessage({ type: 'coq-added-axiom', sid: sid }, '*');
+                parent.postMessage({ type: 'coq-added-axiom', sid: sid }, PARENT_ORIGIN);
               }
             }
           });
@@ -76,13 +99,13 @@ Qed.
 
         // Notify parent
         if (window.parent !== window) {
-          window.parent.postMessage({ type: 'coq-ready' }, '*');
+          window.parent.postMessage({ type: 'coq-ready' }, PARENT_ORIGIN);
         }
       });
     }).catch(err => {
       console.error('[coq-worker] JsCoq failed:', err);
       if (window.parent !== window) {
-        window.parent.postMessage({ type: 'coq-error', error: String(err) }, '*');
+        window.parent.postMessage({ type: 'coq-error', error: String(err) }, window.location.origin);
       }
     });
 
@@ -104,7 +127,12 @@ Qed.
       });
     }
 
+    var PARENT_ORIGIN = window.location.origin;
+
     async function handleCommand(event) {
+      // Only accept commands from our parent, same origin
+      if (event.source !== window.parent) return;
+      if (event.origin !== PARENT_ORIGIN) return;
       var data = event.data;
       if (!data || !data.cmd) return;
 
@@ -115,35 +143,35 @@ Qed.
       try {
         switch (cmd) {
           case 'ping':
-            parent.postMessage({ type: 'coq-pong', id: id, ready: ready }, '*');
+            parent.postMessage({ type: 'coq-pong', id: id, ready: ready }, PARENT_ORIGIN);
             break;
 
           case 'set-code': {
             if (!mgr || !mgr.provider || !mgr.provider.snippets || !mgr.provider.snippets[0] || !mgr.provider.snippets[0].editor) {
-              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, '*');
+              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, PARENT_ORIGIN);
               return;
             }
             mgr.provider.snippets[0].editor.setValue(args.code);
-            parent.postMessage({ type: 'coq-result', id: id, ok: true }, '*');
+            parent.postMessage({ type: 'coq-result', id: id, ok: true }, PARENT_ORIGIN);
             break;
           }
 
           case 'exec-next': {
             if (!mgr || !ready) {
-              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, '*');
+              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, PARENT_ORIGIN);
               return;
             }
             var result = mgr.goNext(false);
             if (result !== false) {
               await waitForProcessing(15000);
             }
-            parent.postMessage({ type: 'coq-result', id: id, ok: true, hasMore: result !== false }, '*');
+            parent.postMessage({ type: 'coq-result', id: id, ok: true, hasMore: result !== false }, PARENT_ORIGIN);
             break;
           }
 
           case 'exec-all': {
             if (!mgr || !ready) {
-              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, '*');
+              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, PARENT_ORIGIN);
               return;
             }
             var queued = 0;
@@ -159,22 +187,22 @@ Qed.
             var errorStms = sentences.filter(function(stm) { return stm.phase === 'error'; });
             var errors = errorStms.map(function(stm) {
               var fb = stm.feedback && stm.feedback.find(function(f) { return f.level === 'Error'; });
-              return (fb && fb.msg) || stm.text || 'error';
+              return fb ? ppToString(fb.msg) : (stm.text || 'error');
             });
             var mgrErrors = (mgr.error || []).map(function(stm) { return stm.text || 'Unknown'; });
 
             parent.postMessage({
               type: 'coq-result', id: id, ok: true,
-              processedCount: Math.max(0, processedCount - 1),
+              processedCount: processedCount,
               totalQueued: queued,
               errors: errors.concat(mgrErrors)
-            }, '*');
+            }, PARENT_ORIGIN);
             break;
           }
 
           case 'reset': {
             if (!mgr) {
-              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, '*');
+              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, PARENT_ORIGIN);
               return;
             }
             // mgr.reset() restarts the worker and calls coqInit(), but the
@@ -192,26 +220,26 @@ Qed.
             });
             await mgr.reset();
             await resetReadyPromise;
-            parent.postMessage({ type: 'coq-result', id: id, ok: true }, '*');
+            parent.postMessage({ type: 'coq-result', id: id, ok: true }, PARENT_ORIGIN);
             break;
           }
 
           case 'exec-prev': {
             if (!mgr || !ready) {
-              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, '*');
+              parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, PARENT_ORIGIN);
               return;
             }
             mgr.goPrev(false);
             await new Promise(function(resolve) { setTimeout(resolve, 200); });
-            parent.postMessage({ type: 'coq-result', id: id, ok: true }, '*');
+            parent.postMessage({ type: 'coq-result', id: id, ok: true }, PARENT_ORIGIN);
             break;
           }
 
           default:
-            parent.postMessage({ type: 'coq-result', id: id, error: 'unknown cmd: ' + cmd }, '*');
+            parent.postMessage({ type: 'coq-result', id: id, error: 'unknown cmd: ' + cmd }, PARENT_ORIGIN);
         }
       } catch (err) {
-        parent.postMessage({ type: 'coq-result', id: id, error: String(err) }, '*');
+        parent.postMessage({ type: 'coq-result', id: id, error: String(err) }, PARENT_ORIGIN);
       }
     }
   </script>

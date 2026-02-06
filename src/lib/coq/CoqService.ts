@@ -2,6 +2,7 @@
 
 import type { CoqGoal, VerificationResult, CoqWorkerStatus } from './types';
 import { checkForbiddenTactics, isProofComplete } from './verifier';
+import { parseStatements, isProofStart, parseGoalData } from './coq-parser';
 
 export interface CoqServiceCallbacks {
   onStatusChange?: (status: CoqWorkerStatus) => void;
@@ -10,6 +11,7 @@ export interface CoqServiceCallbacks {
   onError?: (error: string) => void;
   onReady?: () => void;
   onExecutionProgress?: (executed: number, total: number) => void;
+  onPositionChange?: (charOffset: number) => void;
 }
 
 /**
@@ -32,10 +34,13 @@ export class CoqService {
   private initPromise: Promise<void> | null = null;
   private currentGoals: CoqGoal[] = [];
   private executionError: string | null = null;
+  private codeSyncPending: boolean = false;
   private messageId = 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private pendingMessages = new Map<number, { resolve: (data: any) => void; reject: (err: Error) => void; timeout: ReturnType<typeof setTimeout> }>();
   private messageHandler: ((event: MessageEvent) => void) | null = null;
   private initTimeout: ReturnType<typeof setTimeout> | null = null;
+  private goalResolvers: Array<() => void> = [];
 
   constructor(callbacks: CoqServiceCallbacks = {}) {
     this.callbacks = callbacks;
@@ -103,6 +108,9 @@ export class CoqService {
 
       // Set up message handler BEFORE creating iframe
       this.messageHandler = (event: MessageEvent) => {
+        // Only accept messages from our own iframe, same origin
+        if (event.origin !== window.location.origin) return;
+        if (this.iframe && event.source !== this.iframe.contentWindow) return;
         const data = event.data;
         if (!data?.type?.startsWith('coq-')) return;
 
@@ -170,6 +178,7 @@ export class CoqService {
       // Create iframe pointing to the jsCoq worker page
       const iframe = document.createElement('iframe');
       iframe.src = `/coq-worker.html?v=${Date.now()}`;
+      iframe.sandbox.add('allow-scripts', 'allow-same-origin');
       iframe.style.cssText = 'position: fixed; left: 0; top: 0; width: 800px; height: 600px; opacity: 0; pointer-events: none; z-index: -9999; border: none;';
       document.body.appendChild(iframe);
       this.iframe = iframe;
@@ -185,6 +194,7 @@ export class CoqService {
   }
 
   /** Send a command to the iframe and wait for the result */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private sendCommand(cmd: string, args: Record<string, unknown> = {}): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.iframe?.contentWindow) {
@@ -202,39 +212,52 @@ export class CoqService {
       }, 30000);
 
       this.pendingMessages.set(id, { resolve, reject, timeout });
-      this.iframe.contentWindow.postMessage({ id, cmd, args }, '*');
+      this.iframe.contentWindow.postMessage({ id, cmd, args }, window.location.origin);
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private handleGoalInfo(goalData: any): void {
-    if (!goalData?.goals) {
-      this.currentGoals = [];
-      this.callbacks.onGoalsUpdate?.([]);
-      return;
-    }
-
-    const goals: CoqGoal[] = goalData.goals.map((g: any, index: number) => ({
-      id: index + 1,
-      hypotheses: (g.hyp || []).map(([names, type]: [string[], string]) => ({
-        name: names.join(', '),
-        type: this.stripPpTags(type),
-      })),
-      conclusion: this.stripPpTags(g.ccl),
-    }));
-
+    const goals = parseGoalData(goalData);
     this.currentGoals = goals;
     this.callbacks.onGoalsUpdate?.(goals);
+
+    // Resolve any promises waiting for goal updates
+    const resolvers = this.goalResolvers;
+    this.goalResolvers = [];
+    resolvers.forEach(r => r());
   }
 
-  private stripPpTags(s: string): string {
-    if (typeof s !== 'string') return String(s);
-    return s.replace(/<\/?Pp_[^>]*>/g, '').replace(/<\/?[a-z_]+>/gi, '').trim();
+  /** Wait for the next goal update (or timeout) */
+  private waitForGoals(timeoutMs: number): Promise<void> {
+    return new Promise(resolve => {
+      const timer = setTimeout(() => {
+        this.goalResolvers = this.goalResolvers.filter(r => r !== wrappedResolve);
+        resolve();
+      }, timeoutMs);
+      const wrappedResolve = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      this.goalResolvers.push(wrappedResolve);
+    });
   }
+
+  // stripPpTags and ppToString are now imported from ./coq-parser
 
   setCode(code: string): void {
     this.currentCode = code;
-    // Fire and forget - the code will be sent when needed
-    this.sendCommand('set-code', { code }).catch(() => {});
+    this.codeSyncPending = true;
+    this.sendCommand('set-code', { code })
+      .then(() => { this.codeSyncPending = false; })
+      .catch(() => { this.codeSyncPending = true; });
+  }
+
+  private async ensureCodeSynced(): Promise<void> {
+    if (this.codeSyncPending) {
+      await this.sendCommand('set-code', { code: this.currentCode });
+      this.codeSyncPending = false;
+    }
   }
 
   getCode(): string {
@@ -245,48 +268,22 @@ export class CoqService {
     return this.proofStarted;
   }
 
-  private parseStatements(code: string): string[] {
-    const statements: string[] = [];
-    let current = '';
-    let commentDepth = 0;
-    let inString = false;
-    let escaped = false;
+  // parseStatements and isProofStart are imported from ./coq-parser
 
-    for (let i = 0; i < code.length; i++) {
-      const char = code[i];
-      const next = code[i + 1];
-
-      if (char === '(' && next === '*' && !inString) {
-        commentDepth++;
-        current += '(*';
-        i++;
-        continue;
-      }
-
-      if (char === '*' && next === ')' && commentDepth > 0 && !inString) {
-        commentDepth--;
-        current += '*)';
-        i++;
-        continue;
-      }
-
-      if (char === '"' && commentDepth === 0 && !escaped) {
-        inString = !inString;
-      }
-
-      current += char;
-      escaped = inString && char === '\\' && !escaped;
-
-      if (char === '.' && commentDepth === 0 && !inString) {
-        const trimmed = current.trim();
-        if (trimmed) {
-          statements.push(trimmed);
-        }
-        current = '';
-      }
+  private computeExecutedOffset(): number {
+    if (this.executedStatements.length === 0) return 0;
+    let offset = 0;
+    const code = this.currentCode;
+    for (const stmt of this.executedStatements) {
+      const idx = code.indexOf(stmt, offset);
+      if (idx === -1) break;
+      offset = idx + stmt.length;
     }
+    return offset;
+  }
 
-    return statements;
+  private firePositionChange(): void {
+    this.callbacks.onPositionChange?.(this.computeExecutedOffset());
   }
 
   async executeNext(): Promise<void> {
@@ -301,21 +298,23 @@ export class CoqService {
     this.setStatus('busy');
 
     try {
+      await this.ensureCodeSynced();
       const result = await this.sendCommand('exec-next');
 
       if (result.hasMore !== false) {
-        const statements = this.parseStatements(this.currentCode);
+        const statements = parseStatements(this.currentCode);
         const nextIndex = this.executedStatements.length;
         if (nextIndex < statements.length) {
           const statement = statements[nextIndex];
           this.executedStatements.push(statement);
-          if (statement.toLowerCase().includes('proof')) {
+          if (isProofStart(statement)) {
             this.proofStarted = true;
           }
         }
       }
 
       this.setStatus('ready');
+      this.firePositionChange();
     } catch (error) {
       this.setStatus('error');
       this.callbacks.onError?.(error instanceof Error ? error.message : 'Execution failed');
@@ -342,6 +341,7 @@ export class CoqService {
       }
 
       this.setStatus('ready');
+      this.firePositionChange();
     } catch (error) {
       this.setStatus('error');
       this.callbacks.onError?.(error instanceof Error ? error.message : 'Undo failed');
@@ -362,7 +362,8 @@ export class CoqService {
     this.executionError = null;
 
     try {
-      const statements = this.parseStatements(this.currentCode);
+      await this.ensureCodeSynced();
+      const statements = parseStatements(this.currentCode);
       const total = statements.length;
 
       const result = await this.sendCommand('exec-all');
@@ -372,7 +373,7 @@ export class CoqService {
       // Update tracking
       this.executedStatements = statements.slice(0, actualProcessed);
       for (const stmt of this.executedStatements) {
-        if (stmt.toLowerCase().includes('proof')) {
+        if (isProofStart(stmt)) {
           this.proofStarted = true;
         }
       }
@@ -385,6 +386,7 @@ export class CoqService {
 
       this.callbacks.onExecutionProgress?.(this.executedStatements.length, total);
       this.setStatus('ready');
+      this.firePositionChange();
 
       return { stoppedAt, error: this.executionError || undefined };
     } catch (error) {
@@ -408,8 +410,10 @@ export class CoqService {
       this.proofStarted = false;
       this.currentGoals = [];
       this.executionError = null;
+      this.goalResolvers = [];
       this.callbacks.onGoalsUpdate?.([]);
       this.setStatus('ready');
+      this.firePositionChange();
     } catch (error) {
       this.setStatus('error');
       this.callbacks.onError?.(error instanceof Error ? error.message : 'Reset failed');
@@ -447,11 +451,11 @@ export class CoqService {
     try {
       const execResult = await this.executeAll();
 
-      // Wait a bit for goals to propagate via postMessage
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait for goals to propagate via postMessage
+      await this.waitForGoals(500);
 
       const goals = this.currentGoals;
-      const hasQed = isProofComplete(userCode);
+      const hasTerminator = isProofComplete(userCode);
       const errors: string[] = [];
 
       if (execResult.stoppedAt) {
@@ -462,14 +466,14 @@ export class CoqService {
         errors.push(this.executionError);
       }
 
-      const isComplete = goals.length === 0 && hasQed && errors.length === 0;
+      const isComplete = goals.length === 0 && hasTerminator && errors.length === 0;
 
       if (goals.length > 0) {
         errors.push(`Proof incomplete: ${goals.length} goal(s) remaining`);
       }
 
-      if (hasQed && goals.length > 0) {
-        errors.push('Qed failed: proof has unresolved goals');
+      if (hasTerminator && goals.length > 0) {
+        errors.push('Proof terminator failed: proof has unresolved goals');
       }
 
       return {
@@ -484,7 +488,7 @@ export class CoqService {
     } catch (error) {
       return {
         success: false,
-        goals: this.currentGoals,
+        goals: [],
         errors: [error instanceof Error ? error.message : 'Verification failed'],
         messages: [],
         hasForbiddenTactics: false,
@@ -525,6 +529,8 @@ export class CoqService {
     this.currentCode = '';
     this.currentGoals = [];
     this.executionError = null;
+    this.codeSyncPending = false;
+    this.goalResolvers = [];
     this.initPromise = null;
     this.setStatus('idle');
   }
