@@ -1,1 +1,1 @@
-export * from './dist/frontend/index.js'
+export * from './dist/frontend/index.v2.js'

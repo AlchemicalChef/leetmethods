@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <title>jsCoq Test Page</title>
+  </head>
+
+<body class="jscoq-main">
+  <div id="ide-wrapper" class="toggled">
+    <div id="code-wrapper">
+      <div id="document">
+        <h1>jsCoq Standalone Test</h1>
+        <textarea class="coq-code">
+Theorem and_commutative : forall A B : Prop, A /\ B -> B /\ A.
+Proof.
+  intros A B H.
+  destruct H as [HA HB].
+  split.
+  - exact HB.
+  - exact HA.
+Qed.
+</textarea>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { JsCoq } from './jscoq/jscoq.js';
+
+    var jscoq_ids  = ['.coq-code'];
+    var jscoq_opts = {
+        prelude:       true,
+        implicit_libs: true,
+        editor:        { mode: { 'company-coq': false } },
+        init_pkgs:     ['init'],
+        all_pkgs:      ['coq']
+    };
+
+    JsCoq.start(jscoq_ids, jscoq_opts).then(mgr => {
+      console.log('[test] JsCoq started, manager:', mgr);
+      mgr.when_ready.then(() => {
+        console.log('[test] Coq is ready!');
+      });
+    }).catch(err => {
+      console.error('[test] JsCoq failed:', err);
+    });
+  </script>
+</body>
+</html>

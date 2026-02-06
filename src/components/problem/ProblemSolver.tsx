@@ -99,32 +99,52 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
 
   const handleExecuteNext = useCallback(async () => {
     if (!serviceRef.current) return;
-    const currentCode = codeRef.current;
-    serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
-    setProofState('in_progress');
-    await serviceRef.current.executeNext();
-  }, [problem.prelude, setProofState]);
+    try {
+      const currentCode = codeRef.current;
+      serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
+      setProofState('in_progress');
+      await serviceRef.current.executeNext();
+    } catch (error) {
+      console.error('[ProblemSolver] executeNext failed:', error);
+      addMessage('error', error instanceof Error ? error.message : 'Execution failed');
+    }
+  }, [problem.prelude, setProofState, addMessage]);
 
   const handleExecutePrev = useCallback(async () => {
     if (!serviceRef.current) return;
-    await serviceRef.current.executePrev();
-  }, []);
+    try {
+      await serviceRef.current.executePrev();
+    } catch (error) {
+      console.error('[ProblemSolver] executePrev failed:', error);
+      addMessage('error', error instanceof Error ? error.message : 'Undo failed');
+    }
+  }, [addMessage]);
 
   const handleExecuteAll = useCallback(async () => {
     if (!serviceRef.current) return;
-    const currentCode = codeRef.current;
-    serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
-    setProofState('in_progress');
-    await serviceRef.current.executeAll();
-  }, [problem.prelude, setProofState]);
+    try {
+      const currentCode = codeRef.current;
+      serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
+      setProofState('in_progress');
+      await serviceRef.current.executeAll();
+    } catch (error) {
+      console.error('[ProblemSolver] executeAll failed:', error);
+      addMessage('error', error instanceof Error ? error.message : 'Execution failed');
+    }
+  }, [problem.prelude, setProofState, addMessage]);
 
   const handleReset = useCallback(async () => {
     if (!serviceRef.current) return;
-    await serviceRef.current.reset();
-    resetCode(problem.template);
-    setSubmissionResult(null);
-    setProofState('not_started');
-  }, [problem.template, resetCode, setProofState]);
+    try {
+      await serviceRef.current.reset();
+      resetCode(problem.template);
+      setSubmissionResult(null);
+      setProofState('not_started');
+    } catch (error) {
+      console.error('[ProblemSolver] reset failed:', error);
+      addMessage('error', error instanceof Error ? error.message : 'Reset failed');
+    }
+  }, [problem.template, resetCode, setProofState, addMessage]);
 
   const handleSubmit = useCallback(async () => {
     if (!serviceRef.current) return;
@@ -141,13 +161,30 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
       addMessage('success', 'Proof accepted! Congratulations!');
     } else {
       setSubmissionResult('failure');
+      setProofState('in_progress');
 
+      // Show all relevant error information
       if (result.hasForbiddenTactics) {
         addMessage('error', `Forbidden tactics used: ${result.forbiddenTacticsFound.join(', ')}`);
-      } else if (result.goals.length > 0) {
+      }
+
+      if (result.goals.length > 0) {
         addMessage('error', `${result.goals.length} goal(s) remaining. Complete the proof to submit.`);
-      } else if (result.errors.length > 0) {
-        addMessage('error', result.errors.join('\n'));
+      }
+
+      // Show additional errors (execution failures, Qed failures, etc.)
+      if (result.errors.length > 0) {
+        for (const error of result.errors) {
+          // Avoid duplicate messages about goals
+          if (!error.includes('goal(s) remaining')) {
+            addMessage('error', error);
+          }
+        }
+      }
+
+      // Fallback if no specific error was shown
+      if (!result.hasForbiddenTactics && result.goals.length === 0 && result.errors.length === 0) {
+        addMessage('error', 'Proof verification failed. Check your code for errors.');
       }
     }
   }, [problem, saveCode, markCompleted, incrementAttempts, addMessage, setProofState]);
@@ -159,7 +196,7 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
     }
   }, [hintsRevealed, problem.hints.length, problem.slug, incrementHints]);
 
-  const isComplete = proofState === 'completed' && goals.length === 0;
+  const isComplete = proofState === 'completed' && goals.length === 0 && submissionResult !== 'failure';
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row">

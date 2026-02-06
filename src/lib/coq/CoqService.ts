@@ -1,6 +1,6 @@
 'use client';
 
-import type { CoqGoal, CoqHypothesis, VerificationResult, CoqWorkerStatus } from './types';
+import type { CoqGoal, VerificationResult, CoqWorkerStatus } from './types';
 import { checkForbiddenTactics, isProofComplete } from './verifier';
 
 export interface CoqServiceCallbacks {
@@ -12,55 +12,32 @@ export interface CoqServiceCallbacks {
   onExecutionProgress?: (executed: number, total: number) => void;
 }
 
-// jsCoq Manager interface
-interface JsCoqManager {
-  when_ready: Promise<void>;
-  goNext(focus?: boolean): boolean;
-  goPrev(focus?: boolean): boolean;
-  goCursor(): void;
-  reset(): Promise<void>;
-  provider?: {
-    snippets?: Array<{
-      editor?: {
-        getValue(): string;
-        setValue(value: string): void;
-      };
-    }>;
-  };
-  layout?: {
-    proof?: HTMLElement;
-  };
-}
-
-// Global JsCoq type
-declare global {
-  interface Window {
-    JsCoq?: {
-      start(ids: string[] | string, options?: Record<string, unknown>): Promise<JsCoqManager>;
-    };
-  }
-}
-
 /**
- * CoqService - Self-hosted jsCoq integration
+ * CoqService - Iframe-isolated jsCoq integration
  *
- * Uses jsCoq served from /jscoq/ in the public directory.
+ * Runs jsCoq inside a hidden iframe to completely isolate it from the
+ * Next.js environment. Communicates via postMessage.
+ *
+ * The standalone test page (jscoq-test.html) works perfectly, but running
+ * jsCoq directly in the Next.js page causes stm.ml assertion failures.
+ * The iframe approach gives jsCoq a clean browser context.
  */
 export class CoqService {
   private status: CoqWorkerStatus = 'idle';
   private callbacks: CoqServiceCallbacks;
-  private coqManager: JsCoqManager | null = null;
+  private iframe: HTMLIFrameElement | null = null;
   private currentCode: string = '';
   private executedStatements: string[] = [];
   private proofStarted: boolean = false;
   private initPromise: Promise<void> | null = null;
-  private containerId: string;
   private currentGoals: CoqGoal[] = [];
-  private goalObserver: MutationObserver | null = null;
+  private executionError: string | null = null;
+  private messageId = 0;
+  private pendingMessages = new Map<number, { resolve: (data: any) => void; reject: (err: Error) => void }>();
+  private messageHandler: ((event: MessageEvent) => void) | null = null;
 
   constructor(callbacks: CoqServiceCallbacks = {}) {
     this.callbacks = callbacks;
-    this.containerId = `jscoq-container-${Date.now()}`;
   }
 
   updateCallbacks(callbacks: CoqServiceCallbacks): void {
@@ -85,76 +62,8 @@ export class CoqService {
     return this.initPromise;
   }
 
-  private static jscoqLoadPromise: Promise<void> | null = null;
-
-  private async loadJsCoqModule(): Promise<void> {
-    // Check if already loaded
-    if (window.JsCoq) {
-      return;
-    }
-
-    // If already loading, wait for that promise
-    if (CoqService.jscoqLoadPromise) {
-      return CoqService.jscoqLoadPromise;
-    }
-
-    // Note: We don't load jsCoq CSS as it contains Bootstrap which conflicts with our styles
-    // The jsCoq UI is hidden anyway - we only use the Coq execution engine
-
-    CoqService.jscoqLoadPromise = new Promise((resolve, reject) => {
-      // Check if script already exists
-      const existingScript = document.querySelector('script[src="/jscoq/loader.js"]');
-      if (existingScript) {
-        // Script exists, wait for jscoq-loaded event or check if already loaded
-        const checkLoaded = () => {
-          if (window.JsCoq) {
-            resolve();
-          } else {
-            setTimeout(checkLoaded, 100);
-          }
-        };
-        checkLoaded();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = '/jscoq/loader.js';
-
-      const handleLoad = () => {
-        window.removeEventListener('jscoq-loaded', handleLoad);
-        if (window.JsCoq) {
-          resolve();
-        } else {
-          reject(new Error('JsCoq failed to load'));
-        }
-      };
-
-      window.addEventListener('jscoq-loaded', handleLoad);
-
-      script.onerror = () => {
-        window.removeEventListener('jscoq-loaded', handleLoad);
-        CoqService.jscoqLoadPromise = null;
-        reject(new Error('Failed to load jsCoq script'));
-      };
-
-      document.head.appendChild(script);
-
-      // Timeout after 30 seconds
-      setTimeout(() => {
-        if (!window.JsCoq) {
-          window.removeEventListener('jscoq-loaded', handleLoad);
-          CoqService.jscoqLoadPromise = null;
-          reject(new Error('jsCoq load timeout'));
-        }
-      }, 30000);
-    });
-
-    return CoqService.jscoqLoadPromise;
-  }
-
   private async doInitialize(): Promise<void> {
-    if (this.coqManager) {
+    if (this.iframe) {
       this.setStatus('ready');
       this.callbacks.onReady?.();
       return;
@@ -167,67 +76,8 @@ export class CoqService {
         throw new Error('jsCoq requires browser environment');
       }
 
-      // Create the jsCoq container
-      this.createContainer();
-
-      // Verify element was created
-      const textareaId = `${this.containerId}-code`;
-      const textarea = document.getElementById(textareaId);
-      if (!textarea) {
-        throw new Error(`Failed to create textarea element: ${textareaId}`);
-      }
-
-      // Wait for DOM to be fully updated before jsCoq tries to find elements
-      await new Promise<void>(resolve => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => resolve());
-        });
-      });
-
-      // Double-check element is still there and visible to DOM
-      const verifyElement = document.getElementById(textareaId);
-      if (!verifyElement) {
-        throw new Error(`Element disappeared after DOM sync: ${textareaId}`);
-      }
-
-      // Load JsCoq module via script tag (webpack doesn't support dynamic import of public files)
-      await this.loadJsCoqModule();
-
-      if (!window.JsCoq) {
-        throw new Error('JsCoq not available after loading');
-      }
-
-      // Final check before starting - element must still exist
-      const finalCheck = document.getElementById(textareaId);
-      if (!finalCheck) {
-        throw new Error(`Element disappeared before JsCoq.start: ${textareaId}`);
-      }
-
-      // Start jsCoq with our textarea
-      // Note: JsCoq._getopts expects: string=base_path, string=node_modules, array=ids, object=opts
-      // Element IDs must be passed as an array
-      // Use 'wa' (WebAssembly) backend - the only one we have bundled
-      // IMPORTANT: show must be true for jsCoq to initialize - our container is hidden anyway
-      this.coqManager = await window.JsCoq.start([textareaId], {
-        backend: 'wa',
-        prelude: true,
-        implicit_libs: true,
-        init_pkgs: ['init'],
-        all_pkgs: ['coq'],
-        show: true,  // Required for initialization to complete
-        focus: false,
-        editor: { mode: { 'company-coq': false } },
-      });
-
-      // Wait for Coq to be ready (with timeout)
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Coq initialization timeout (60s)')), 60000);
-      });
-
-      await Promise.race([this.coqManager.when_ready, timeoutPromise]);
-
-      // Set up goal observer
-      this.setupGoalObserver();
+      // Create hidden iframe with jsCoq worker page
+      await this.createIframe();
 
       this.setStatus('ready');
       this.callbacks.onReady?.();
@@ -242,131 +92,136 @@ export class CoqService {
     }
   }
 
-  private createContainer(): void {
-    // Remove any existing jscoq containers to avoid conflicts
-    const existingContainer = document.getElementById(this.containerId);
-    if (existingContainer) {
-      existingContainer.remove();
-    }
+  private createIframe(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // Clean up any existing iframe
+      if (this.iframe) {
+        this.iframe.remove();
+        this.iframe = null;
+      }
 
-    // Also remove standard wrapper if it exists (from previous instances)
-    const existingWrapper = document.getElementById('ide-wrapper');
-    if (existingWrapper && existingWrapper.dataset.jscoqManaged === 'true') {
-      existingWrapper.remove();
-    }
+      // Set up message handler BEFORE creating iframe
+      this.messageHandler = (event: MessageEvent) => {
+        const data = event.data;
+        if (!data?.type?.startsWith('coq-')) return;
 
-    // Create the jsCoq wrapper structure (hidden but accessible)
-    // Using STANDARD IDs that jsCoq expects by default
-    const container = document.createElement('div');
-    container.id = this.containerId;
-    container.className = 'jscoq-main';
-    // Keep element in DOM flow but hidden - some libraries have issues with off-screen elements
-    container.style.cssText = 'position: absolute; left: -9999px; width: 800px; height: 600px; overflow: hidden;';
+        switch (data.type) {
+          case 'coq-ready':
+            console.log('[CoqService] Coq ready (via iframe)');
+            resolve();
+            break;
 
-    // Use standard IDs that jsCoq expects
-    const ideWrapper = document.createElement('div');
-    ideWrapper.id = 'ide-wrapper';
-    ideWrapper.className = 'toggled';
-    ideWrapper.dataset.jscoqManaged = 'true';  // Mark for cleanup
+          case 'coq-error':
+            console.error('[CoqService] Coq init error:', data.error);
+            reject(new Error(data.error));
+            break;
 
-    const codeWrapper = document.createElement('div');
-    codeWrapper.id = 'code-wrapper';
+          case 'coq-goals':
+            this.handleGoalInfo(data.goals);
+            break;
 
-    const documentDiv = document.createElement('div');
-    documentDiv.id = 'document';
+          case 'coq-exec-error':
+            this.executionError = data.error;
+            this.callbacks.onMessage?.({ type: 'error', content: data.error });
+            break;
 
-    // Textarea still gets unique ID
-    const textarea = document.createElement('textarea');
-    textarea.id = `${this.containerId}-code`;
-    textarea.style.cssText = 'width: 100%; height: 400px;';
-    // Pre-populate with a simple comment so jsCoq has something to parse
-    textarea.value = '(* LeetMethods Coq Editor *)';
+          case 'coq-log-error':
+            this.executionError = data.error;
+            break;
 
-    documentDiv.appendChild(textarea);
-    codeWrapper.appendChild(documentDiv);
-    ideWrapper.appendChild(codeWrapper);
-    container.appendChild(ideWrapper);
-    document.body.appendChild(container);
+          case 'coq-result': {
+            const pending = this.pendingMessages.get(data.id);
+            if (pending) {
+              this.pendingMessages.delete(data.id);
+              if (data.error) {
+                pending.reject(new Error(data.error));
+              } else {
+                pending.resolve(data);
+              }
+            }
+            break;
+          }
+
+          case 'coq-pong': {
+            const pend = this.pendingMessages.get(data.id);
+            if (pend) {
+              this.pendingMessages.delete(data.id);
+              pend.resolve(data);
+            }
+            break;
+          }
+        }
+      };
+      window.addEventListener('message', this.messageHandler);
+
+      // Create iframe pointing to the jsCoq worker page
+      const iframe = document.createElement('iframe');
+      iframe.src = `/coq-worker.html?v=${Date.now()}`;
+      iframe.style.cssText = 'position: fixed; left: 0; top: 0; width: 800px; height: 600px; opacity: 0; pointer-events: none; z-index: -9999; border: none;';
+      document.body.appendChild(iframe);
+      this.iframe = iframe;
+
+      // Timeout for initialization
+      setTimeout(() => {
+        if (this.status === 'loading') {
+          reject(new Error('Coq initialization timeout (60s)'));
+        }
+      }, 60000);
+    });
   }
 
-  private setupGoalObserver(): void {
-    if (this.coqManager?.layout?.proof) {
-      this.goalObserver = new MutationObserver(() => {
-        this.parseAndUpdateGoals();
-      });
-      this.goalObserver.observe(this.coqManager.layout.proof, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-      });
-    }
+  /** Send a command to the iframe and wait for the result */
+  private sendCommand(cmd: string, args: Record<string, unknown> = {}): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.iframe?.contentWindow) {
+        reject(new Error('Iframe not available'));
+        return;
+      }
+
+      const id = ++this.messageId;
+      this.pendingMessages.set(id, { resolve, reject });
+
+      this.iframe.contentWindow.postMessage({ id, cmd, args }, '*');
+
+      // Timeout for individual commands
+      setTimeout(() => {
+        if (this.pendingMessages.has(id)) {
+          this.pendingMessages.delete(id);
+          reject(new Error(`Command ${cmd} timeout`));
+        }
+      }, 30000);
+    });
   }
 
-  private parseAndUpdateGoals(): void {
-    if (!this.coqManager?.layout?.proof) return;
+  private handleGoalInfo(goalData: any): void {
+    if (!goalData?.goals) {
+      this.currentGoals = [];
+      this.callbacks.onGoalsUpdate?.([]);
+      return;
+    }
 
-    const proofElement = this.coqManager.layout.proof;
-    const goals = this.parseGoalsFromElement(proofElement);
+    const goals: CoqGoal[] = goalData.goals.map((g: any, index: number) => ({
+      id: index + 1,
+      hypotheses: (g.hyp || []).map(([names, type]: [string[], string]) => ({
+        name: names.join(', '),
+        type: this.stripPpTags(type),
+      })),
+      conclusion: this.stripPpTags(g.ccl),
+    }));
+
     this.currentGoals = goals;
     this.callbacks.onGoalsUpdate?.(goals);
   }
 
-  private parseGoalsFromElement(element: HTMLElement): CoqGoal[] {
-    const goals: CoqGoal[] = [];
-
-    const noGoals = element.querySelector('.no-goals');
-    if (noGoals) {
-      return [];
-    }
-
-    const envElements = element.querySelectorAll('.coq-env');
-    envElements.forEach((env, index) => {
-      const hypotheses: CoqHypothesis[] = [];
-
-      const hypElements = env.querySelectorAll('.coq-hypothesis');
-      hypElements.forEach((hyp) => {
-        const labels = hyp.querySelectorAll('label');
-        const typeDiv = hyp.querySelector('div:last-child');
-        const type = typeDiv?.textContent?.trim() || '';
-
-        labels.forEach((label) => {
-          hypotheses.push({
-            name: label.textContent?.trim() || '',
-            type,
-          });
-        });
-      });
-
-      const hr = env.querySelector('hr');
-      const conclusion = hr?.nextElementSibling?.textContent?.trim() ||
-                        env.lastElementChild?.textContent?.trim() || '';
-
-      goals.push({
-        id: index + 1,
-        hypotheses,
-        conclusion,
-      });
-    });
-
-    const pendingGoals = element.querySelectorAll('.coq-subgoal-pending');
-    pendingGoals.forEach((pending) => {
-      const conclusion = pending.textContent?.replace(/^\d+\s*/, '').trim() || '';
-      goals.push({
-        id: goals.length + 1,
-        hypotheses: [],
-        conclusion,
-      });
-    });
-
-    return goals;
+  private stripPpTags(s: string): string {
+    if (typeof s !== 'string') return String(s);
+    return s.replace(/<\/?Pp_[^>]*>/g, '').replace(/<\/?[a-z_]+>/gi, '').trim();
   }
 
   setCode(code: string): void {
     this.currentCode = code;
-
-    if (this.coqManager?.provider?.snippets?.[0]?.editor) {
-      this.coqManager.provider.snippets[0].editor.setValue(code);
-    }
+    // Fire and forget - the code will be sent when needed
+    this.sendCommand('set-code', { code }).catch(() => {});
   }
 
   getCode(): string {
@@ -418,7 +273,7 @@ export class CoqService {
   }
 
   async executeNext(): Promise<void> {
-    if (!this.coqManager) {
+    if (!this.iframe) {
       throw new Error('Coq not initialized');
     }
 
@@ -429,24 +284,20 @@ export class CoqService {
     this.setStatus('busy');
 
     try {
-      const result = this.coqManager.goNext(false);
+      const result = await this.sendCommand('exec-next');
 
-      await new Promise(resolve => setTimeout(resolve, 150));
-
-      if (result !== false) {
+      if (result.hasMore !== false) {
         const statements = this.parseStatements(this.currentCode);
         const nextIndex = this.executedStatements.length;
         if (nextIndex < statements.length) {
           const statement = statements[nextIndex];
           this.executedStatements.push(statement);
-
           if (statement.toLowerCase().includes('proof')) {
             this.proofStarted = true;
           }
         }
       }
 
-      this.parseAndUpdateGoals();
       this.setStatus('ready');
     } catch (error) {
       this.setStatus('error');
@@ -456,7 +307,7 @@ export class CoqService {
   }
 
   async executePrev(): Promise<void> {
-    if (!this.coqManager) {
+    if (!this.iframe) {
       throw new Error('Coq not initialized');
     }
 
@@ -467,15 +318,12 @@ export class CoqService {
     this.setStatus('busy');
 
     try {
-      this.coqManager.goPrev(false);
-
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await this.sendCommand('exec-prev');
 
       if (this.executedStatements.length > 0) {
         this.executedStatements.pop();
       }
 
-      this.parseAndUpdateGoals();
       this.setStatus('ready');
     } catch (error) {
       this.setStatus('error');
@@ -484,8 +332,8 @@ export class CoqService {
     }
   }
 
-  async executeAll(): Promise<void> {
-    if (!this.coqManager) {
+  async executeAll(): Promise<{ stoppedAt?: string; error?: string }> {
+    if (!this.iframe) {
       throw new Error('Coq not initialized');
     }
 
@@ -494,31 +342,39 @@ export class CoqService {
     }
 
     this.setStatus('busy');
+    this.executionError = null;
 
     try {
       const statements = this.parseStatements(this.currentCode);
       const total = statements.length;
 
-      for (let i = this.executedStatements.length; i < total; i++) {
-        const result = this.coqManager.goNext(false);
-        if (result === false) break;
+      const result = await this.sendCommand('exec-all');
 
-        const statement = statements[i];
-        this.executedStatements.push(statement);
+      const actualProcessed = result.processedCount ?? 0;
 
-        if (statement.toLowerCase().includes('proof')) {
+      // Update tracking
+      this.executedStatements = statements.slice(0, actualProcessed);
+      for (const stmt of this.executedStatements) {
+        if (stmt.toLowerCase().includes('proof')) {
           this.proofStarted = true;
         }
-
-        this.callbacks.onExecutionProgress?.(i + 1, total);
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      this.parseAndUpdateGoals();
+      let stoppedAt: string | undefined;
+      if (result.errors?.length > 0) {
+        this.executionError = result.errors[0];
+        stoppedAt = result.errors[0];
+      }
+
+      this.callbacks.onExecutionProgress?.(this.executedStatements.length, total);
       this.setStatus('ready');
+
+      return { stoppedAt, error: this.executionError || undefined };
     } catch (error) {
       this.setStatus('error');
-      this.callbacks.onError?.(error instanceof Error ? error.message : 'Execution failed');
+      const errorMsg = error instanceof Error ? error.message : 'Execution failed';
+      this.executionError = errorMsg;
+      this.callbacks.onError?.(errorMsg);
       throw error;
     }
   }
@@ -527,13 +383,14 @@ export class CoqService {
     this.setStatus('busy');
 
     try {
-      if (this.coqManager) {
-        await this.coqManager.reset();
+      if (this.iframe) {
+        await this.sendCommand('reset');
       }
 
       this.executedStatements = [];
       this.proofStarted = false;
       this.currentGoals = [];
+      this.executionError = null;
       this.callbacks.onGoalsUpdate?.([]);
       this.setStatus('ready');
     } catch (error) {
@@ -563,20 +420,54 @@ export class CoqService {
     }
 
     await this.reset();
+    this.executionError = null;
     const fullCode = `${prelude}\n\n${userCode}`;
-    this.setCode(fullCode);
+    this.currentCode = fullCode;
+
+    // Set code in the iframe
+    await this.sendCommand('set-code', { code: fullCode });
 
     try {
-      await this.executeAll();
+      const execResult = await this.executeAll();
+
+      // Wait a bit for goals to propagate via postMessage
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       const goals = this.currentGoals;
       const hasQed = isProofComplete(userCode);
-      const isComplete = goals.length === 0 && hasQed;
+      const errors: string[] = [];
+
+      console.log('[CoqService.verify] Debug info:', {
+        execResult,
+        goalsCount: goals.length,
+        hasQed,
+        executedStatements: this.executedStatements,
+        totalStatements: this.parseStatements(fullCode).length,
+        executionError: this.executionError,
+      });
+
+      if (execResult.stoppedAt) {
+        errors.push(execResult.error || `Execution stopped at: ${execResult.stoppedAt}`);
+      }
+
+      if (this.executionError && !errors.includes(this.executionError)) {
+        errors.push(this.executionError);
+      }
+
+      const isComplete = goals.length === 0 && hasQed && errors.length === 0;
+
+      if (goals.length > 0) {
+        errors.push(`Proof incomplete: ${goals.length} goal(s) remaining`);
+      }
+
+      if (hasQed && goals.length > 0) {
+        errors.push('Qed failed: proof has unresolved goals');
+      }
 
       return {
         success: isComplete,
         goals,
-        errors: [],
+        errors,
         messages: [],
         hasForbiddenTactics: false,
         forbiddenTacticsFound: [],
@@ -596,27 +487,31 @@ export class CoqService {
   }
 
   destroy(): void {
-    this.goalObserver?.disconnect();
-    this.goalObserver = null;
+    // Remove message handler
+    if (this.messageHandler) {
+      window.removeEventListener('message', this.messageHandler);
+      this.messageHandler = null;
+    }
+
+    // Remove iframe (kills the worker automatically)
+    if (this.iframe) {
+      this.iframe.remove();
+      this.iframe = null;
+    }
+
+    // Clear pending messages
+    for (const [, pending] of this.pendingMessages) {
+      pending.reject(new Error('Service destroyed'));
+    }
+    this.pendingMessages.clear();
+
     this.executedStatements = [];
     this.proofStarted = false;
     this.currentCode = '';
     this.currentGoals = [];
-    this.coqManager = null;
+    this.executionError = null;
     this.initPromise = null;
     this.setStatus('idle');
-
-    // Clean up our container
-    const container = document.getElementById(this.containerId);
-    if (container) {
-      container.remove();
-    }
-
-    // Also clean up the standard wrapper if it was ours
-    const ideWrapper = document.getElementById('ide-wrapper');
-    if (ideWrapper && ideWrapper.dataset.jscoqManaged === 'true') {
-      ideWrapper.remove();
-    }
   }
 }
 

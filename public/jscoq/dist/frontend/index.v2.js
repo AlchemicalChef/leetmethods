@@ -28273,11 +28273,8 @@ var CoqLayoutClassic = class {
     if (options.theme) {
       this.panel.classList.remove(...[...this.panel.classList].filter((c) => c.startsWith("jscoq-theme-")));
       this.panel.classList.add(`jscoq-theme-${options.theme}`);
-      try {
-        let ipanel = this.panel.querySelector("#help-panel iframe");
-        if (ipanel && ipanel.contentDocument && ipanel.contentDocument.body)
-          ipanel.contentDocument.body.setAttribute("theme", options.theme);
-      } catch (e) { /* iframe not ready yet */ }
+      let ipanel = this.panel.querySelector("#help-panel iframe");
+      try { if (ipanel && ipanel.contentDocument && ipanel.contentDocument.body) ipanel.contentDocument.body.setAttribute("theme", options.theme); } catch(e) { /* iframe not ready */ }
     }
     this.settings.configure({
       theme: options.theme,
@@ -31014,13 +31011,11 @@ var CoqManager = class {
     this.coq.interruptSetup();
     try {
       if (this._populatePromise) {
-        console.log('[jsCoq patch] Waiting for package manifest to load...');
         await this._populatePromise;
-        console.log('[jsCoq patch] Package manifest loaded.');
       }
       await this.packages.loadDeps(this.options.init_pkgs);
     } catch (e) {
-      console.error('[jsCoq patch] Failed loading initial packages:', e);
+      console.error('[jsCoq] Failed loading initial packages:', e);
       this.layout.systemNotification(
         `===> Failed loading initial packages [${this.options.init_pkgs.join(", ")}]`
       );
@@ -31224,15 +31219,11 @@ var CoqManager = class {
     this.layout.systemNotification(
       `===> Loaded packages [${this.options.init_pkgs.join(", ")}]`
     );
-    var loadPath = this.getLoadPath();
-    console.log('[jsCoq patch] coqInit called');
-    console.log('[jsCoq patch] loaded_pkgs:', this.packages.loaded_pkgs);
-    console.log('[jsCoq patch] lib_path:', JSON.stringify(loadPath));
     let init_opts = {
       implicit_libs: this.options.implicit_libs,
       coq_options: this._parseOptions(this.options.coq || {}),
       debug: { coq: false, stm: false },
-      lib_path: loadPath
+      lib_path: this.getLoadPath()
     }, doc_opts = {
       lib_init: this.options.prelude ? [PKG_ALIASES.prelude] : []
     };
