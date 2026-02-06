@@ -44,14 +44,12 @@ export const useCoqStore = create<CoqState>((set) => ({
 
   setStatus: (status: CoqStatus) => set({ status }),
 
-  // FIX #11: Don't automatically set proof complete based on goals alone
+  // Update goals. Only auto-transition not_started → in_progress when goals appear.
+  // Completion is set explicitly via setProofState('completed') after successful submission.
   setGoals: (goals: CoqGoal[]) => {
     set((state) => {
-      // Only mark as completed if we were in_progress and now have no goals
       let newProofState = state.proofState;
-      if (state.proofState === 'in_progress' && goals.length === 0) {
-        newProofState = 'completed';
-      } else if (goals.length > 0 && state.proofState === 'not_started') {
+      if (goals.length > 0 && state.proofState === 'not_started') {
         newProofState = 'in_progress';
       }
       return { goals, proofState: newProofState };

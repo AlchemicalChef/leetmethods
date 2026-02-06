@@ -17,7 +17,7 @@ interface ProblemSolverProps {
 
 export function ProblemSolver({ problem }: ProblemSolverProps) {
   const { code, loadCode, setCode, saveCode, resetCode } = useEditorStore();
-  const { goals, setGoals, status, setStatus, proofState, setProofState, addMessage, reset: resetCoqStore } = useCoqStore();
+  const { goals, setGoals, status, setStatus, proofState, setProofState, addMessage, messages, reset: resetCoqStore } = useCoqStore();
   const { markCompleted, incrementAttempts, incrementHints, getProgress } = useProgressStore();
 
   const [hintsRevealed, setHintsRevealed] = useState(0);
@@ -196,7 +196,7 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
     }
   }, [hintsRevealed, problem.hints.length, problem.slug, incrementHints]);
 
-  const isComplete = proofState === 'completed' && goals.length === 0 && submissionResult !== 'failure';
+  const isComplete = submissionResult === 'success' && proofState === 'completed' && goals.length === 0;
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row">
@@ -284,6 +284,7 @@ export function ProblemSolver({ problem }: ProblemSolverProps) {
             {goalsExpanded && (
               <GoalsPanel
                 goals={goals}
+                messages={messages}
                 isLoading={status === 'busy' || status === 'loading'}
                 isComplete={isComplete}
                 className="h-[calc(100%-37px)]"

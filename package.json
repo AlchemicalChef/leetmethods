@@ -2,6 +2,8 @@
   "name": "leetmethods",
   "version": "0.1.0",
   "private": true,
+  "description": "A LeetCode-style platform for practicing formal proofs in Coq",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

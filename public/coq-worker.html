@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="content-type" content="text/html;charset=utf-8" />
-    <title>jsCoq Test Page</title>
+    <title>jsCoq Worker</title>
   </head>
 
 <body class="jscoq-main">
@@ -40,7 +40,7 @@ Qed.
 
     JsCoq.start(jscoq_ids, jscoq_opts).then(manager => {
       mgr = manager;
-      console.log('[coq-worker] JsCoq started, manager:', mgr);
+      console.log('[coq-worker] JsCoq started');
       manager.when_ready.then(() => {
         ready = true;
         console.log('[coq-worker] Coq is ready!');
@@ -61,6 +61,11 @@ Qed.
             coqLog(level, msg) {
               if (level === 'Error' && window.parent !== window) {
                 parent.postMessage({ type: 'coq-log-error', error: String(msg) }, '*');
+              }
+            },
+            feedAddedAxiom(sid) {
+              if (window.parent !== window) {
+                parent.postMessage({ type: 'coq-added-axiom', sid: sid }, '*');
               }
             }
           });
@@ -118,7 +123,6 @@ Qed.
               parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, '*');
               return;
             }
-            console.log('[coq-worker] set-code: length:', args.code.length, 'code:', args.code);
             mgr.provider.snippets[0].editor.setValue(args.code);
             parent.postMessage({ type: 'coq-result', id: id, ok: true }, '*');
             break;
@@ -142,13 +146,8 @@ Qed.
               parent.postMessage({ type: 'coq-result', id: id, error: 'not ready' }, '*');
               return;
             }
-            // Debug: log the code being executed
-            var editorCode = mgr.provider.snippets[0].editor.getValue();
-            console.log('[coq-worker] exec-all: editor content length:', editorCode.length);
-            console.log('[coq-worker] exec-all: editor content:', editorCode);
             var queued = 0;
             while (mgr.goNext(false) !== false) queued++;
-            console.log('[coq-worker] exec-all: queued', queued, 'statements');
             if (queued > 0) {
               await waitForProcessing(30000);
             }

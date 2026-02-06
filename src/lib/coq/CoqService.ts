@@ -18,9 +18,9 @@ export interface CoqServiceCallbacks {
  * Runs jsCoq inside a hidden iframe to completely isolate it from the
  * Next.js environment. Communicates via postMessage.
  *
- * The standalone test page (jscoq-test.html) works perfectly, but running
- * jsCoq directly in the Next.js page causes stm.ml assertion failures.
- * The iframe approach gives jsCoq a clean browser context.
+ * Running jsCoq directly in the Next.js page causes stm.ml assertion failures
+ * due to state machine conflicts. The iframe approach gives jsCoq a clean
+ * browser context that avoids these issues.
  */
 export class CoqService {
   private status: CoqWorkerStatus = 'idle';
@@ -33,8 +33,9 @@ export class CoqService {
   private currentGoals: CoqGoal[] = [];
   private executionError: string | null = null;
   private messageId = 0;
-  private pendingMessages = new Map<number, { resolve: (data: any) => void; reject: (err: Error) => void }>();
+  private pendingMessages = new Map<number, { resolve: (data: any) => void; reject: (err: Error) => void; timeout: ReturnType<typeof setTimeout> }>();
   private messageHandler: ((event: MessageEvent) => void) | null = null;
+  private initTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(callbacks: CoqServiceCallbacks = {}) {
     this.callbacks = callbacks;
@@ -107,12 +108,18 @@ export class CoqService {
 
         switch (data.type) {
           case 'coq-ready':
-            console.log('[CoqService] Coq ready (via iframe)');
+            if (this.initTimeout) {
+              clearTimeout(this.initTimeout);
+              this.initTimeout = null;
+            }
             resolve();
             break;
 
           case 'coq-error':
-            console.error('[CoqService] Coq init error:', data.error);
+            if (this.initTimeout) {
+              clearTimeout(this.initTimeout);
+              this.initTimeout = null;
+            }
             reject(new Error(data.error));
             break;
 
@@ -129,9 +136,14 @@ export class CoqService {
             this.executionError = data.error;
             break;
 
+          case 'coq-added-axiom':
+            this.callbacks.onMessage?.({ type: 'warning', content: 'Proof contains an unproven axiom (Admitted). Complete the proof to submit.' });
+            break;
+
           case 'coq-result': {
             const pending = this.pendingMessages.get(data.id);
             if (pending) {
+              clearTimeout(pending.timeout);
               this.pendingMessages.delete(data.id);
               if (data.error) {
                 pending.reject(new Error(data.error));
@@ -145,6 +157,7 @@ export class CoqService {
           case 'coq-pong': {
             const pend = this.pendingMessages.get(data.id);
             if (pend) {
+              clearTimeout(pend.timeout);
               this.pendingMessages.delete(data.id);
               pend.resolve(data);
             }
@@ -162,7 +175,8 @@ export class CoqService {
       this.iframe = iframe;
 
       // Timeout for initialization
-      setTimeout(() => {
+      this.initTimeout = setTimeout(() => {
+        this.initTimeout = null;
         if (this.status === 'loading') {
           reject(new Error('Coq initialization timeout (60s)'));
         }
@@ -179,17 +193,16 @@ export class CoqService {
       }
 
       const id = ++this.messageId;
-      this.pendingMessages.set(id, { resolve, reject });
 
-      this.iframe.contentWindow.postMessage({ id, cmd, args }, '*');
-
-      // Timeout for individual commands
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         if (this.pendingMessages.has(id)) {
           this.pendingMessages.delete(id);
           reject(new Error(`Command ${cmd} timeout`));
         }
       }, 30000);
+
+      this.pendingMessages.set(id, { resolve, reject, timeout });
+      this.iframe.contentWindow.postMessage({ id, cmd, args }, '*');
     });
   }
 
@@ -237,6 +250,7 @@ export class CoqService {
     let current = '';
     let commentDepth = 0;
     let inString = false;
+    let escaped = false;
 
     for (let i = 0; i < code.length; i++) {
       const char = code[i];
@@ -244,21 +258,24 @@ export class CoqService {
 
       if (char === '(' && next === '*' && !inString) {
         commentDepth++;
-        current += char;
+        current += '(*';
+        i++;
         continue;
       }
 
       if (char === '*' && next === ')' && commentDepth > 0 && !inString) {
         commentDepth--;
-        current += char;
+        current += '*)';
+        i++;
         continue;
       }
 
-      if (char === '"' && commentDepth === 0) {
+      if (char === '"' && commentDepth === 0 && !escaped) {
         inString = !inString;
       }
 
       current += char;
+      escaped = inString && char === '\\' && !escaped;
 
       if (char === '.' && commentDepth === 0 && !inString) {
         const trimmed = current.trim();
@@ -437,15 +454,6 @@ export class CoqService {
       const hasQed = isProofComplete(userCode);
       const errors: string[] = [];
 
-      console.log('[CoqService.verify] Debug info:', {
-        execResult,
-        goalsCount: goals.length,
-        hasQed,
-        executedStatements: this.executedStatements,
-        totalStatements: this.parseStatements(fullCode).length,
-        executionError: this.executionError,
-      });
-
       if (execResult.stoppedAt) {
         errors.push(execResult.error || `Execution stopped at: ${execResult.stoppedAt}`);
       }
@@ -487,6 +495,12 @@ export class CoqService {
   }
 
   destroy(): void {
+    // Clear init timeout
+    if (this.initTimeout) {
+      clearTimeout(this.initTimeout);
+      this.initTimeout = null;
+    }
+
     // Remove message handler
     if (this.messageHandler) {
       window.removeEventListener('message', this.messageHandler);
@@ -499,10 +513,11 @@ export class CoqService {
       this.iframe = null;
     }
 
-    // Clear pending messages
-    for (const [, pending] of this.pendingMessages) {
+    // Clear pending messages and their timeouts
+    this.pendingMessages.forEach((pending) => {
+      clearTimeout(pending.timeout);
       pending.reject(new Error('Service destroyed'));
-    }
+    });
     this.pendingMessages.clear();
 
     this.executedStatements = [];

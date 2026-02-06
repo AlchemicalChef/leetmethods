@@ -1,17 +1,20 @@
 'use client';
 
+import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import type { CoqGoal } from '@/lib/coq/types';
+import type { CoqMessage } from '@/store/coqStore';
 
 interface GoalsPanelProps {
   goals: CoqGoal[];
+  messages?: CoqMessage[];
   isLoading?: boolean;
   isComplete?: boolean;
   className?: string;
 }
 
-export function GoalsPanel({ goals, isLoading, isComplete, className = '' }: GoalsPanelProps) {
+export function GoalsPanel({ goals, messages = [], isLoading, isComplete, className = '' }: GoalsPanelProps) {
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center h-full bg-muted/30 ${className}`}>
@@ -35,7 +38,10 @@ export function GoalsPanel({ goals, isLoading, isComplete, className = '' }: Goa
     );
   }
 
-  if (goals.length === 0) {
+  // Show recent messages (last 5) relevant to current state
+  const recentMessages = messages.slice(-5);
+
+  if (goals.length === 0 && recentMessages.length === 0) {
     return (
       <div className={`flex items-center justify-center h-full bg-muted/30 ${className}`}>
         <div className="text-muted-foreground text-sm">
@@ -48,13 +54,26 @@ export function GoalsPanel({ goals, isLoading, isComplete, className = '' }: Goa
   return (
     <ScrollArea className={`h-full ${className}`}>
       <div className="p-4 space-y-4">
-        <div className="text-sm text-muted-foreground">
-          {goals.length} {goals.length === 1 ? 'goal' : 'goals'}
-        </div>
+        {/* Messages */}
+        {recentMessages.length > 0 && (
+          <div className="space-y-2">
+            {recentMessages.map((msg, i) => (
+              <MessageDisplay key={msg.timestamp + i} message={msg} />
+            ))}
+          </div>
+        )}
 
-        {goals.map((goal, index) => (
-          <GoalDisplay key={goal.id} goal={goal} index={index} isFirst={index === 0} />
-        ))}
+        {/* Goals */}
+        {goals.length > 0 && (
+          <>
+            <div className="text-sm text-muted-foreground">
+              {goals.length} {goals.length === 1 ? 'goal' : 'goals'}
+            </div>
+            {goals.map((goal, index) => (
+              <GoalDisplay key={goal.id} goal={goal} index={index} isFirst={index === 0} />
+            ))}
+          </>
+        )}
       </div>
     </ScrollArea>
   );
@@ -64,6 +83,25 @@ interface GoalDisplayProps {
   goal: CoqGoal;
   index: number;
   isFirst: boolean;
+}
+
+const messageStyles = {
+  error: { icon: AlertCircle, bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-900', text: 'text-red-700 dark:text-red-400', iconColor: 'text-red-500' },
+  warning: { icon: AlertTriangle, bg: 'bg-yellow-50 dark:bg-yellow-950/30', border: 'border-yellow-200 dark:border-yellow-900', text: 'text-yellow-700 dark:text-yellow-400', iconColor: 'text-yellow-500' },
+  success: { icon: CheckCircle2, bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-200 dark:border-green-900', text: 'text-green-700 dark:text-green-400', iconColor: 'text-green-500' },
+  info: { icon: Info, bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-900', text: 'text-blue-700 dark:text-blue-400', iconColor: 'text-blue-500' },
+  notice: { icon: Info, bg: 'bg-muted/50', border: 'border-border', text: 'text-muted-foreground', iconColor: 'text-muted-foreground' },
+} as const;
+
+function MessageDisplay({ message }: { message: CoqMessage }) {
+  const style = messageStyles[message.type] || messageStyles.info;
+  const Icon = style.icon;
+  return (
+    <div className={`flex items-start gap-2 px-3 py-2 rounded-md border text-sm ${style.bg} ${style.border} ${style.text}`}>
+      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${style.iconColor}`} />
+      <span className="break-words min-w-0">{message.content}</span>
+    </div>
+  );
 }
 
 function GoalDisplay({ goal, index, isFirst }: GoalDisplayProps) {
