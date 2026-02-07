@@ -1,0 +1,18 @@
+{
+  "id": "21",
+  "slug": "double-plus",
+  "title": "Double Equals Plus Self",
+  "difficulty": "medium",
+  "category": "induction",
+  "tags": ["natural numbers", "custom definition", "induction"],
+  "description": "Given a custom `double` function, prove that `double n = n + n` for all natural numbers.\n\n**Goal:** `forall n : nat, double n = n + n`\n\nThe `double` function is defined recursively: `double 0 = 0` and `double (S n) = S (S (double n))`. You'll need induction and a rewriting lemma about `+`.",
+  "hints": [
+    "Perform induction on `n`",
+    "The base case simplifies directly",
+    "In the inductive step, after `simpl` and `rewrite IHn`, you may need `rewrite Nat.add_succ_r` to align both sides"
+  ],
+  "prelude": "Require Import Arith.\nRequire Import PeanoNat.\n\nFixpoint double (n : nat) : nat :=\n  match n with\n  | O => O\n  | S n' => S (S (double n'))\n  end.",
+  "template": "Theorem double_plus : forall n : nat, double n = n + n.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem double_plus : forall n : nat, double n = n + n.\nProof.\n  intros n.\n  induction n as [| n' IHn'].\n  - simpl. reflexivity.\n  - simpl. rewrite IHn'. rewrite Nat.add_succ_r. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

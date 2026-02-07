@@ -60,6 +60,8 @@ interface CoqEditorProps {
   onExecuteNext?: () => void;
   onExecutePrev?: () => void;
   onExecuteAll?: () => void;
+  onExecuteToPosition?: (charOffset: number) => void;
+  onCursorActivity?: (offset: number) => void;
   executedUpTo?: number;
   readOnly?: boolean;
   className?: string;
@@ -71,6 +73,8 @@ export function CoqEditor({
   onExecuteNext,
   onExecutePrev,
   onExecuteAll,
+  onExecuteToPosition,
+  onCursorActivity,
   executedUpTo = 0,
   readOnly = false,
   className = '',
@@ -83,6 +87,8 @@ export function CoqEditor({
   const onExecuteNextRef = useRef(onExecuteNext);
   const onExecutePrevRef = useRef(onExecutePrev);
   const onExecuteAllRef = useRef(onExecuteAll);
+  const onExecuteToPositionRef = useRef(onExecuteToPosition);
+  const onCursorActivityRef = useRef(onCursorActivity);
 
   // Get theme from next-themes
   const { resolvedTheme } = useTheme();
@@ -102,7 +108,9 @@ export function CoqEditor({
     onExecuteNextRef.current = onExecuteNext;
     onExecutePrevRef.current = onExecutePrev;
     onExecuteAllRef.current = onExecuteAll;
-  }, [onChange, onExecuteNext, onExecutePrev, onExecuteAll]);
+    onExecuteToPositionRef.current = onExecuteToPosition;
+    onCursorActivityRef.current = onCursorActivity;
+  }, [onChange, onExecuteNext, onExecutePrev, onExecuteAll, onExecuteToPosition, onCursorActivity]);
 
   // Create custom keybindings for Coq execution
   const coqKeymap = useMemo(() => keymap.of([
@@ -154,6 +162,15 @@ export function CoqEditor({
         return true;
       },
     },
+    {
+      key: 'Ctrl-Shift-Enter',
+      mac: 'Cmd-Shift-Enter',
+      run: (view: EditorView) => {
+        const offset = view.state.selection.main.head;
+        onExecuteToPositionRef.current?.(offset);
+        return true;
+      },
+    },
   ]), []);
 
   // Initialize editor (only on mount / readOnly change)
@@ -186,6 +203,9 @@ export function CoqEditor({
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChangeRef.current(update.state.doc.toString());
+        }
+        if (update.selectionSet) {
+          onCursorActivityRef.current?.(update.state.selection.main.head);
         }
       }),
       EditorView.lineWrapping,

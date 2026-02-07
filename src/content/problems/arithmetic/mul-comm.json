@@ -1,0 +1,19 @@
+{
+  "id": "26",
+  "slug": "mul-comm",
+  "title": "Multiplication is Commutative",
+  "difficulty": "hard",
+  "category": "arithmetic",
+  "tags": ["natural numbers", "multiplication", "commutativity"],
+  "description": "Prove that multiplication of natural numbers is commutative: `n * m = m * n`.\n\n**Goal:** `forall n m : nat, n * m = m * n`\n\nThis is a classic proof that requires induction and several helper lemmas from the standard library. The key lemmas are `Nat.mul_0_r`, `Nat.mul_succ_r`, and properties of addition.",
+  "hints": [
+    "Perform induction on `n`",
+    "For the base case, you need `0 * m = m * 0`. Use `simpl` and `Nat.mul_0_r`",
+    "For the inductive case, after `simpl` you get `m + n' * m = m * S n'`. Use `Nat.mul_succ_r` to rewrite the right side",
+    "Then use the inductive hypothesis to finish"
+  ],
+  "prelude": "Require Import Arith.\nRequire Import PeanoNat.",
+  "template": "Theorem mul_comm : forall n m : nat, n * m = m * n.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem mul_comm : forall n m : nat, n * m = m * n.\nProof.\n  intros n m.\n  induction n as [| n' IHn'].\n  - simpl. rewrite Nat.mul_0_r. reflexivity.\n  - simpl. rewrite Nat.mul_succ_r. rewrite IHn'. rewrite Nat.add_comm. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

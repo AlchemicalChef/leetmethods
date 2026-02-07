@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Code2, Menu, X, BarChart3 } from 'lucide-react';
+import { BookOpen, Code2, GraduationCap, Menu, X, BarChart3 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 
@@ -20,6 +20,13 @@ export function Navbar() {
 
         {/* Desktop navigation */}
         <div className="hidden md:flex items-center gap-6">
+          <Link
+            href="/tutorial"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <GraduationCap className="h-4 w-4" />
+            Tutorial
+          </Link>
           <Link
             href="/problems"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -61,6 +68,14 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t bg-background">
           <div className="px-4 py-3 space-y-3">
+            <Link
+              href="/tutorial"
+              className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2 flex items-center gap-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <GraduationCap className="h-4 w-4" />
+              Tutorial
+            </Link>
             <Link
               href="/problems"
               className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2"

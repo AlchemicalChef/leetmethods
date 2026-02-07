@@ -1,0 +1,18 @@
+{
+  "id": "30",
+  "slug": "eq-sym-trans",
+  "title": "Equality: Symmetry and Transitivity",
+  "difficulty": "easy",
+  "category": "relations",
+  "tags": ["equality", "symmetry", "transitivity"],
+  "description": "Prove two fundamental properties of equality: symmetry (`a = b -> b = a`) and transitivity (`a = b -> b = c -> a = c`).\n\n**Goal:** `forall (A : Type) (a b c : A), a = b -> b = a` (first part)\nand `forall (A : Type) (a b c : A), a = b -> b = c -> a = c` (second part)\n\nCombined into a conjunction for this exercise. Use `rewrite` to manipulate equalities.",
+  "hints": [
+    "Use `split` to separate the conjunction into two goals",
+    "For symmetry: introduce the hypothesis `a = b`, then `rewrite H` transforms the goal",
+    "For transitivity: introduce both hypotheses, then chain `rewrite` calls"
+  ],
+  "prelude": "(* No imports needed *)",
+  "template": "Theorem eq_sym_trans : forall (A : Type) (a b c : A),\n  (a = b -> b = a) /\\ (a = b -> b = c -> a = c).\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem eq_sym_trans : forall (A : Type) (a b c : A),\n  (a = b -> b = a) /\\ (a = b -> b = c -> a = c).\nProof.\n  intros A a b c.\n  split.\n  - intros H. rewrite H. reflexivity.\n  - intros H1 H2. rewrite H1. exact H2.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

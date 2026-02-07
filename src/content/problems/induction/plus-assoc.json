@@ -1,0 +1,18 @@
+{
+  "id": "20",
+  "slug": "plus-assoc",
+  "title": "Addition is Associative",
+  "difficulty": "medium",
+  "category": "induction",
+  "tags": ["natural numbers", "associativity", "induction"],
+  "description": "Prove that addition of natural numbers is associative: `(n + m) + p = n + (m + p)`.\n\n**Goal:** `forall n m p : nat, (n + m) + p = n + (m + p)`\n\nThis is a fundamental property of natural number addition. You'll need induction on one of the arguments.",
+  "hints": [
+    "Perform induction on `n`",
+    "The base case (n = 0) should simplify directly with `simpl` and `reflexivity`",
+    "For the inductive case, `simpl` will reduce `S n' + m + p` and `S n' + (m + p)`, then use `rewrite IHn'`"
+  ],
+  "prelude": "Require Import Arith.",
+  "template": "Theorem plus_assoc : forall n m p : nat, (n + m) + p = n + (m + p).\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem plus_assoc : forall n m p : nat, (n + m) + p = n + (m + p).\nProof.\n  intros n m p.\n  induction n as [| n' IHn'].\n  - simpl. reflexivity.\n  - simpl. rewrite IHn'. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

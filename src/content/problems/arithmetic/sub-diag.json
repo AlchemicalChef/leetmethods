@@ -1,0 +1,18 @@
+{
+  "id": "25",
+  "slug": "sub-diag",
+  "title": "Subtraction Diagonal",
+  "difficulty": "easy",
+  "category": "arithmetic",
+  "tags": ["natural numbers", "subtraction", "induction"],
+  "description": "Prove that any natural number minus itself is zero.\n\n**Goal:** `forall n : nat, n - n = 0`\n\nSubtraction on natural numbers (`nat`) in Coq is truncated: `0 - m = 0` for any `m`. This proof requires a simple induction.",
+  "hints": [
+    "Perform induction on `n`",
+    "The base case: `0 - 0 = 0` simplifies directly",
+    "For the inductive case, `simpl` reduces `S n' - S n'` to `n' - n'`, then apply the inductive hypothesis"
+  ],
+  "prelude": "Require Import Arith.",
+  "template": "Theorem sub_diag : forall n : nat, n - n = 0.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem sub_diag : forall n : nat, n - n = 0.\nProof.\n  intros n.\n  induction n as [| n' IHn'].\n  - simpl. reflexivity.\n  - simpl. exact IHn'.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

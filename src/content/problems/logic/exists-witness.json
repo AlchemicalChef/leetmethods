@@ -1,0 +1,18 @@
+{
+  "id": "18",
+  "slug": "exists-witness",
+  "title": "Existential Witness",
+  "difficulty": "easy",
+  "category": "logic",
+  "tags": ["existential", "exists"],
+  "description": "Prove that there exists a natural number that doubled equals 4.\n\n**Goal:** `exists n : nat, n + n = 4`\n\nTo prove an existential statement in Coq, use the `exists` tactic to provide a concrete witness value. Then prove that the witness satisfies the property.",
+  "hints": [
+    "Think about which number, when added to itself, gives 4",
+    "Use `exists 2` to provide the witness",
+    "After providing the witness, the goal becomes `2 + 2 = 4` which can be solved by computation"
+  ],
+  "prelude": "Require Import Arith.",
+  "template": "Theorem exists_witness : exists n : nat, n + n = 4.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem exists_witness : exists n : nat, n + n = 4.\nProof.\n  exists 2.\n  reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

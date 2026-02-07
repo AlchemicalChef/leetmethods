@@ -1,0 +1,18 @@
+{
+  "id": "19",
+  "slug": "false-implies-anything",
+  "title": "Ex Falso Quodlibet",
+  "difficulty": "easy",
+  "category": "logic",
+  "tags": ["false", "contradiction", "destruct"],
+  "description": "Prove that `False` implies any proposition. This is the principle of explosion (ex falso quodlibet).\n\n**Goal:** `forall P : Prop, False -> P`\n\nIn Coq, `False` is an inductive type with no constructors. If you have a hypothesis of type `False`, you can use `destruct` on it to close any goal, since there are no cases to consider.",
+  "hints": [
+    "Use `intros` to introduce P and the False hypothesis",
+    "Use `destruct` on the False hypothesis",
+    "Since False has no constructors, destruct immediately closes the goal"
+  ],
+  "prelude": "(* No imports needed *)",
+  "template": "Theorem false_implies_anything : forall P : Prop, False -> P.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem false_implies_anything : forall P : Prop, False -> P.\nProof.\n  intros P H.\n  destruct H.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

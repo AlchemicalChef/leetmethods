@@ -1,0 +1,18 @@
+{
+  "id": "27",
+  "slug": "even-odd-dec",
+  "title": "Every Nat is Even or Odd",
+  "difficulty": "medium",
+  "category": "arithmetic",
+  "tags": ["natural numbers", "even", "odd", "disjunction"],
+  "description": "Prove that every natural number is either even or odd. We define even and odd using modular arithmetic.\n\n**Goal:** `forall n : nat, Nat.even n = true \\/ Nat.odd n = true`\n\nRecall that `Nat.odd n` is defined as `negb (Nat.even n)`, so exactly one of `Nat.even n` and `Nat.odd n` is true.",
+  "hints": [
+    "Use `intros n` then `destruct (Nat.even n) eqn:E` to case-split",
+    "When `Nat.even n = true`, use `left` and your hypothesis",
+    "When `Nat.even n = false`, use `right` and unfold `Nat.odd` / rewrite with E"
+  ],
+  "prelude": "Require Import Arith.\nRequire Import PeanoNat.\nRequire Import Bool.",
+  "template": "Theorem even_odd_dec : forall n : nat,\n  Nat.even n = true \\/ Nat.odd n = true.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem even_odd_dec : forall n : nat,\n  Nat.even n = true \\/ Nat.odd n = true.\nProof.\n  intros n.\n  destruct (Nat.even n) eqn:E.\n  - left. exact E.\n  - right. unfold Nat.odd. rewrite E. simpl. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "17",
+  "slug": "or-commutative",
+  "title": "Disjunction is Commutative",
+  "difficulty": "easy",
+  "category": "logic",
+  "tags": ["disjunction", "destruct", "left", "right"],
+  "description": "Prove that logical OR is commutative: `P \\/ Q -> Q \\/ P`.\n\n**Goal:** `forall P Q : Prop, P \\/ Q -> Q \\/ P`\n\nTo work with disjunctions in Coq:\n- Use `destruct` to case-split on a disjunction hypothesis\n- Use `left` to prove the left side of a disjunction goal\n- Use `right` to prove the right side of a disjunction goal",
+  "hints": [
+    "Use `intros` to introduce P, Q, and the hypothesis P \\/ Q",
+    "Use `destruct` on the disjunction hypothesis to get two cases",
+    "In each case, decide whether Q or P holds and use `left` or `right`"
+  ],
+  "prelude": "(* No imports needed *)",
+  "template": "Theorem or_commutative : forall P Q : Prop, P \\/ Q -> Q \\/ P.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem or_commutative : forall P Q : Prop, P \\/ Q -> Q \\/ P.\nProof.\n  intros P Q H.\n  destruct H as [HP | HQ].\n  - right. exact HP.\n  - left. exact HQ.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

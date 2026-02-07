@@ -1,0 +1,19 @@
+{
+  "id": "28",
+  "slug": "tree-leaf-count",
+  "title": "Leaf Count = Node Count + 1",
+  "difficulty": "medium",
+  "category": "data-structures",
+  "tags": ["trees", "counting", "induction"],
+  "description": "Prove that in a binary tree, the number of leaves equals the number of internal nodes plus one.\n\n**Goal:** `forall (A : Type) (t : tree A), leaf_count t = node_count t + 1`\n\nWe define a binary tree with `Leaf` and `Node` constructors, along with `leaf_count` and `node_count` functions.",
+  "hints": [
+    "Perform induction on `t`",
+    "The base case: a `Leaf` has 1 leaf and 0 nodes, so `1 = 0 + 1`",
+    "For the `Node` case, use `simpl` and both inductive hypotheses",
+    "You may need `lia` or arithmetic rewriting to finish the algebraic manipulation"
+  ],
+  "prelude": "Require Import Arith.\nRequire Import Lia.\n\nInductive tree (A : Type) : Type :=\n  | Leaf : tree A\n  | Node : A -> tree A -> tree A -> tree A.\n\nArguments Leaf {A}.\nArguments Node {A} _ _ _.\n\nFixpoint leaf_count {A : Type} (t : tree A) : nat :=\n  match t with\n  | Leaf => 1\n  | Node _ l r => leaf_count l + leaf_count r\n  end.\n\nFixpoint node_count {A : Type} (t : tree A) : nat :=\n  match t with\n  | Leaf => 0\n  | Node _ l r => 1 + node_count l + node_count r\n  end.",
+  "template": "Theorem leaf_node_count : forall (A : Type) (t : tree A),\n  leaf_count t = node_count t + 1.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem leaf_node_count : forall (A : Type) (t : tree A),\n  leaf_count t = node_count t + 1.\nProof.\n  intros A t.\n  induction t as [| x l IHl r IHr].\n  - simpl. reflexivity.\n  - simpl. rewrite IHl. rewrite IHr. lia.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

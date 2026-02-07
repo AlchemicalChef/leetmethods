@@ -42,8 +42,8 @@ const defaultStreak: StreakData = {
 // ---------------------------------------------------------------------------
 
 describe('achievements array', () => {
-  it('contains exactly 13 entries', () => {
-    expect(achievements).toHaveLength(13);
+  it('contains exactly 14 entries', () => {
+    expect(achievements).toHaveLength(14);
   });
 
   it('every entry has id, title, description, icon, and category', () => {

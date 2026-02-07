@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Play, StepForward, StepBack, RotateCcw, Check, Loader2, AlertCircle, HelpCircle } from 'lucide-react';
+import { Play, StepForward, StepBack, RotateCcw, Check, Loader2, AlertCircle, HelpCircle, TextCursorInput } from 'lucide-react';
 import type { CoqWorkerStatus } from '@/lib/coq/types';
 
 interface EditorToolbarProps {
@@ -9,6 +9,7 @@ interface EditorToolbarProps {
   onExecuteNext: () => void;
   onExecutePrev: () => void;
   onExecuteAll: () => void;
+  onExecuteToCursor?: () => void;
   onReset: () => void;
   onSubmit: () => void;
   onShowShortcuts?: () => void;
@@ -20,6 +21,7 @@ export function EditorToolbar({
   onExecuteNext,
   onExecutePrev,
   onExecuteAll,
+  onExecuteToCursor,
   onReset,
   onSubmit,
   onShowShortcuts,
@@ -70,6 +72,18 @@ export function EditorToolbar({
           <Play className="h-4 w-4" />
           <span className="ml-1 hidden sm:inline">Run</span>
         </Button>
+
+        {onExecuteToCursor && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onExecuteToCursor}
+            disabled={!canExecute}
+            title="Execute to cursor (Ctrl+Shift+Enter)"
+          >
+            <TextCursorInput className="h-4 w-4" />
+          </Button>
+        )}
 
         <Button
           variant="ghost"

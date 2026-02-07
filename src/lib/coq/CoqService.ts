@@ -417,6 +417,45 @@ export class CoqService {
     }
   }
 
+  async executeToPosition(charOffset: number): Promise<void> {
+    if (!this.iframe) {
+      throw new Error('Coq not initialized');
+    }
+
+    if (this.status !== 'ready') {
+      throw new Error('Coq is not ready');
+    }
+
+    await this.ensureCodeSynced();
+    const statements = parseStatements(this.currentCode);
+
+    // Find target statement index from char offset
+    let targetIndex = 0;
+    let currentOffset = 0;
+    for (let i = 0; i < statements.length; i++) {
+      const idx = this.currentCode.indexOf(statements[i], currentOffset);
+      if (idx === -1) break;
+      currentOffset = idx + statements[i].length;
+      if (currentOffset >= charOffset) {
+        targetIndex = i + 1;
+        break;
+      }
+      targetIndex = i + 1;
+    }
+
+    const currentCount = this.executedStatements.length;
+
+    if (targetIndex > currentCount) {
+      for (let i = currentCount; i < targetIndex; i++) {
+        await this.executeNext();
+      }
+    } else if (targetIndex < currentCount) {
+      for (let i = currentCount; i > targetIndex; i--) {
+        await this.executePrev();
+      }
+    }
+  }
+
   async reset(): Promise<void> {
     this.setStatus('busy');
 

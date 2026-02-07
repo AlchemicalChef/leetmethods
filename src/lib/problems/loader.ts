@@ -19,6 +19,22 @@ import leReflProblem from '@/content/problems/relations/le-refl.json';
 import leTransProblem from '@/content/problems/relations/le-trans.json';
 import eqPairProblem from '@/content/problems/relations/eq-pair.json';
 
+// New problems
+import orCommProblem from '@/content/problems/logic/or-commutative.json';
+import existsWitnessProblem from '@/content/problems/logic/exists-witness.json';
+import falseImpliesProblem from '@/content/problems/logic/false-implies-anything.json';
+import plusAssocProblem from '@/content/problems/induction/plus-assoc.json';
+import doublePlusProblem from '@/content/problems/induction/double-plus.json';
+import listAppNilProblem from '@/content/problems/lists/list-app-nil.json';
+import listMapIdProblem from '@/content/problems/lists/list-map-id.json';
+import listFilterLengthProblem from '@/content/problems/lists/list-filter-length.json';
+import subDiagProblem from '@/content/problems/arithmetic/sub-diag.json';
+import mulCommProblem from '@/content/problems/arithmetic/mul-comm.json';
+import evenOddDecProblem from '@/content/problems/arithmetic/even-odd-dec.json';
+import treeLeafCountProblem from '@/content/problems/data-structures/tree-leaf-count.json';
+import leAntisymProblem from '@/content/problems/relations/le-antisym.json';
+import eqSymTransProblem from '@/content/problems/relations/eq-sym-trans.json';
+
 const problems: Problem[] = [
   modusPonensProblem as Problem,
   doubleNegationProblem as Problem,
@@ -36,6 +52,21 @@ const problems: Problem[] = [
   leReflProblem as Problem,
   leTransProblem as Problem,
   eqPairProblem as Problem,
+  // New problems
+  orCommProblem as Problem,
+  existsWitnessProblem as Problem,
+  falseImpliesProblem as Problem,
+  plusAssocProblem as Problem,
+  doublePlusProblem as Problem,
+  listAppNilProblem as Problem,
+  listMapIdProblem as Problem,
+  listFilterLengthProblem as Problem,
+  subDiagProblem as Problem,
+  mulCommProblem as Problem,
+  evenOddDecProblem as Problem,
+  treeLeafCountProblem as Problem,
+  leAntisymProblem as Problem,
+  eqSymTransProblem as Problem,
 ];
 
 export async function getAllProblems(): Promise<Problem[]> {

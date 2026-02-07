@@ -42,6 +42,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const serviceRef = useRef<CoqService | null>(null);
   const preludeRef = useRef(problem.prelude);
   const submittingRef = useRef(false);
+  const cursorPositionRef = useRef(0);
 
   useEffect(() => {
     codeRef.current = code;
@@ -147,6 +148,28 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
       addMessage('error', error instanceof Error ? error.message : 'Undo failed');
     }
   }, [addMessage]);
+
+  const handleCursorActivity = useCallback((offset: number) => {
+    cursorPositionRef.current = offset;
+  }, []);
+
+  const handleExecuteToPosition = useCallback(async (charOffset: number) => {
+    if (!serviceRef.current) return;
+    try {
+      const currentCode = codeRef.current;
+      serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
+      setProofState('in_progress');
+      const preludeLen = problem.prelude.length + 2;
+      await serviceRef.current.executeToPosition(charOffset + preludeLen);
+    } catch (error) {
+      console.error('[ProblemSolver] executeToPosition failed:', error);
+      addMessage('error', error instanceof Error ? error.message : 'Execution failed');
+    }
+  }, [problem.prelude, setProofState, addMessage]);
+
+  const handleExecuteToCursor = useCallback(() => {
+    handleExecuteToPosition(cursorPositionRef.current);
+  }, [handleExecuteToPosition]);
 
   const handleExecuteAll = useCallback(async () => {
     if (!serviceRef.current) return;
@@ -303,6 +326,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
         onExecuteNext={handleExecuteNext}
         onExecutePrev={handleExecutePrev}
         onExecuteAll={handleExecuteAll}
+        onExecuteToCursor={handleExecuteToCursor}
         onReset={handleReset}
         onSubmit={handleSubmit}
         onShowShortcuts={() => setShortcutsOpen(true)}
@@ -338,6 +362,8 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
             onExecuteNext={handleExecuteNext}
             onExecutePrev={handleExecutePrev}
             onExecuteAll={handleExecuteAll}
+            onExecuteToPosition={handleExecuteToPosition}
+            onCursorActivity={handleCursorActivity}
             executedUpTo={executedUpTo}
             className="h-full"
           />

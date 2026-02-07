@@ -1,0 +1,18 @@
+{
+  "id": "22",
+  "slug": "list-app-nil",
+  "title": "Append Nil is Identity",
+  "difficulty": "easy",
+  "category": "lists",
+  "tags": ["lists", "append", "induction"],
+  "description": "Prove that appending an empty list to any list gives back the original list.\n\n**Goal:** `forall (A : Type) (l : list A), l ++ [] = l`\n\nNote that `[] ++ l = l` holds by definition, but `l ++ [] = l` requires induction because `++` is defined by recursion on the first argument.",
+  "hints": [
+    "Perform induction on `l`",
+    "The base case: `[] ++ [] = []` simplifies directly",
+    "For the inductive case, `simpl` unfolds `(a :: l') ++ []` to `a :: (l' ++ [])`, then use the inductive hypothesis"
+  ],
+  "prelude": "Require Import List.\nImport ListNotations.",
+  "template": "Theorem app_nil_r : forall (A : Type) (l : list A), l ++ [] = l.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem app_nil_r : forall (A : Type) (l : list A), l ++ [] = l.\nProof.\n  intros A l.\n  induction l as [| x l' IHl'].\n  - simpl. reflexivity.\n  - simpl. rewrite IHl'. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

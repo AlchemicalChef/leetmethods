@@ -22,9 +22,9 @@ export default function Home() {
             Solve challenges, build your skills, and prove theorems directly in your browser.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link href="/problems">
+            <Link href="/tutorial">
               <Button size="lg" className="gap-2">
-                Start Proving
+                Start Tutorial
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -74,22 +74,33 @@ export default function Home() {
             <CategoryCard
               title="Logic"
               description="Propositional and predicate logic proofs"
-              count={3}
+              count={6}
             />
             <CategoryCard
               title="Induction"
               description="Mathematical and structural induction"
-              count={3}
+              count={5}
             />
             <CategoryCard
               title="Lists"
               description="Proofs about list operations"
-              count={2}
+              count={5}
             />
             <CategoryCard
               title="Arithmetic"
               description="Number theory and arithmetic proofs"
-              count={2}
+              count={5}
+            />
+            <CategoryCard
+              title="Data Structures"
+              slug="data-structures"
+              description="Trees, BSTs, and recursive data types"
+              count={4}
+            />
+            <CategoryCard
+              title="Relations"
+              description="Ordering, equality, and relational proofs"
+              count={5}
             />
           </div>
         </div>
@@ -156,13 +167,15 @@ function CategoryCard({
   title,
   description,
   count,
+  slug,
 }: {
   title: string;
   description: string;
   count: number;
+  slug?: string;
 }) {
   return (
-    <Link href={`/problems?category=${title.toLowerCase()}`}>
+    <Link href={`/problems?category=${slug ?? title.toLowerCase()}`}>
       <Card className="p-4 hover:bg-muted/50 transition-colors cursor-pointer">
         <div className="flex justify-between items-start">
           <div>

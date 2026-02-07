@@ -1,11 +1,13 @@
 'use client';
 
-import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, Info } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import type { CoqGoal } from '@/lib/coq/types';
 import type { CoqMessage } from '@/store/coqStore';
 import type { ProblemSummary } from '@/lib/problems/types';
+import { formatCoqError } from '@/lib/coq/error-helper';
 import Link from 'next/link';
 
 interface GoalsPanelProps {
@@ -108,10 +110,41 @@ const messageStyles = {
 function MessageDisplay({ message }: { message: CoqMessage }) {
   const style = messageStyles[message.type] || messageStyles.info;
   const Icon = style.icon;
+
+  if (message.type === 'error') {
+    const { friendly, raw } = formatCoqError(message.content);
+    if (friendly) {
+      return <FriendlyErrorDisplay friendly={friendly} raw={raw} style={style} />;
+    }
+  }
+
   return (
     <div className={`flex items-start gap-2 px-3 py-2 rounded-md border text-sm ${style.bg} ${style.border} ${style.text}`}>
       <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${style.iconColor}`} />
       <span className="break-words min-w-0">{message.content}</span>
+    </div>
+  );
+}
+
+function FriendlyErrorDisplay({ friendly, raw, style }: { friendly: string; raw: string; style: (typeof messageStyles)[keyof typeof messageStyles] }) {
+  const [expanded, setExpanded] = useState(false);
+  const Icon = style.icon;
+  return (
+    <div className={`px-3 py-2 rounded-md border text-sm ${style.bg} ${style.border} ${style.text}`}>
+      <div className="flex items-start gap-2">
+        <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${style.iconColor}`} />
+        <span className="break-words min-w-0">{friendly}</span>
+      </div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 mt-1.5 ml-6 text-xs opacity-70 hover:opacity-100 transition-opacity"
+      >
+        {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        Raw error
+      </button>
+      {expanded && (
+        <pre className="mt-1 ml-6 text-xs opacity-70 whitespace-pre-wrap break-words font-mono">{raw}</pre>
+      )}
     </div>
   );
 }

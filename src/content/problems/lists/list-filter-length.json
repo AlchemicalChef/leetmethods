@@ -1,0 +1,20 @@
+{
+  "id": "24",
+  "slug": "list-filter-length",
+  "title": "Filter Doesn't Increase Length",
+  "difficulty": "hard",
+  "category": "lists",
+  "tags": ["lists", "filter", "length", "inequality"],
+  "description": "Prove that filtering a list never increases its length.\n\n**Goal:** `forall (A : Type) (f : A -> bool) (l : list A), length (filter f l) <= length l`\n\nThe `filter` function keeps only elements satisfying predicate `f`. Since it can only remove elements, the resulting list is never longer than the original.",
+  "hints": [
+    "Perform induction on `l`",
+    "The base case: `filter f [] = []` and `length [] <= length []` by reflexivity",
+    "For the inductive case, use `simpl` then `destruct (f a)` to case-split on whether the head is kept",
+    "When `f a = true`, use `simpl` and the Peano `le_n_S` or `Peano.le_n_S` lemma with the inductive hypothesis",
+    "When `f a = false`, use the inductive hypothesis with transitivity (the `le_S` lemma helps)"
+  ],
+  "prelude": "Require Import List.\nRequire Import Arith.\nImport ListNotations.",
+  "template": "Theorem filter_length : forall (A : Type) (f : A -> bool) (l : list A),\n  length (filter f l) <= length l.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem filter_length : forall (A : Type) (f : A -> bool) (l : list A),\n  length (filter f l) <= length l.\nProof.\n  intros A f l.\n  induction l as [| x l' IHl'].\n  - simpl. apply le_n.\n  - simpl. destruct (f x).\n    + simpl. apply le_n_S. exact IHl'.\n    + apply le_S. exact IHl'.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

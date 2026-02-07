@@ -1,0 +1,19 @@
+{
+  "id": "23",
+  "slug": "list-map-id",
+  "title": "Map Identity",
+  "difficulty": "medium",
+  "category": "lists",
+  "tags": ["lists", "map", "induction"],
+  "description": "Prove that mapping the identity function over a list returns the same list.\n\n**Goal:** `forall (A : Type) (l : list A), map (fun x => x) l = l`\n\nThe `map` function applies a function to every element of a list. When that function is the identity, the list is unchanged.",
+  "hints": [
+    "Perform induction on `l`",
+    "The base case: `map id [] = []` simplifies directly",
+    "For the inductive case, `simpl` reduces `map (fun x => x) (a :: l')` to `a :: map (fun x => x) l'`",
+    "Use the inductive hypothesis to rewrite `map (fun x => x) l'` to `l'`"
+  ],
+  "prelude": "Require Import List.\nImport ListNotations.",
+  "template": "Theorem map_id : forall (A : Type) (l : list A),\n  map (fun x => x) l = l.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem map_id : forall (A : Type) (l : list A),\n  map (fun x => x) l = l.\nProof.\n  intros A l.\n  induction l as [| x l' IHl'].\n  - simpl. reflexivity.\n  - simpl. rewrite IHl'. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

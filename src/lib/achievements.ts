@@ -21,6 +21,7 @@ export const achievements: Achievement[] = [
   { id: 'induction-master', title: 'Induction Expert', description: 'Complete all Induction problems', icon: '🔄', category: 'mastery' },
   { id: 'list-master', title: 'List Wrangler', description: 'Complete all List problems', icon: '📋', category: 'mastery' },
   { id: 'data-structures-master', title: 'Tree Climber', description: 'Complete all Data Structures problems', icon: '🌳', category: 'mastery' },
+  { id: 'arithmetic-master', title: 'Number Cruncher', description: 'Complete all Arithmetic problems', icon: '🔢', category: 'mastery' },
   { id: 'relations-master', title: 'Relation Builder', description: 'Complete all Relations problems', icon: '🔗', category: 'mastery' },
 
   // Skill
@@ -36,6 +37,7 @@ const categoryMap: Record<string, Category> = {
   'logic-master': 'logic',
   'induction-master': 'induction',
   'list-master': 'lists',
+  'arithmetic-master': 'arithmetic',
   'data-structures-master': 'data-structures',
   'relations-master': 'relations',
 };

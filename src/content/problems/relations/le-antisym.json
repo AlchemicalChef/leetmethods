@@ -1,0 +1,18 @@
+{
+  "id": "29",
+  "slug": "le-antisym",
+  "title": "Less-or-Equal is Antisymmetric",
+  "difficulty": "medium",
+  "category": "relations",
+  "tags": ["relations", "inequality", "antisymmetry"],
+  "description": "Prove that the less-or-equal relation on natural numbers is antisymmetric: if `n <= m` and `m <= n`, then `n = m`.\n\n**Goal:** `forall n m : nat, n <= m -> m <= n -> n = m`\n\nThis is a key property of partial orders. The `lia` tactic (linear integer arithmetic) can solve this, but you can also prove it using `le_antisym` from the standard library or by induction.",
+  "hints": [
+    "The simplest approach: use `intros` then `apply Nat.le_antisymm`",
+    "Alternatively, use `lia` which handles linear arithmetic goals automatically",
+    "For a manual proof, try induction on the `n <= m` hypothesis"
+  ],
+  "prelude": "Require Import Arith.\nRequire Import PeanoNat.\nRequire Import Lia.",
+  "template": "Theorem le_antisymmetric : forall n m : nat,\n  n <= m -> m <= n -> n = m.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem le_antisymmetric : forall n m : nat,\n  n <= m -> m <= n -> n = m.\nProof.\n  intros n m H1 H2.\n  apply Nat.le_antisymm.\n  - exact H1.\n  - exact H2.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}
