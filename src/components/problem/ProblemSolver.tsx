@@ -26,7 +26,7 @@ interface ProblemSolverProps {
 
 export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps) {
   const { code, loadCode, setCode, saveCode, resetCode } = useEditorStore();
-  const { goals, status, proofState, setProofState, addMessage, messages, reset: resetCoqStore, guidedMode, toggleGuidedMode } = useCoqStore();
+  const { goals, status, proofState, setProofState, addMessage, clearMessages, messages, reset: resetCoqStore, guidedMode, toggleGuidedMode } = useCoqStore();
   const { markCompleted, incrementAttempts, incrementHints, incrementReviewAttempts, incrementReviewHints, getProgress, startTimer, stopTimer, startReview, completeReview } = useProgressStore();
   const searchParams = useSearchParams();
 
@@ -110,9 +110,12 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const handleCodeChange = useCallback(
     (newCode: string) => {
       setCode(newCode);
-      setSubmissionResult(null);
+      if (submissionResult) {
+        setSubmissionResult(null);
+        clearMessages();
+      }
     },
-    [setCode]
+    [setCode, submissionResult, clearMessages]
   );
 
   const handleCursorActivity = useCallback((offset: number) => {
