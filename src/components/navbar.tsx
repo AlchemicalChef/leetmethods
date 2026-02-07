@@ -2,9 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Code2, GraduationCap, Menu, X, BarChart3 } from 'lucide-react';
+import { BookOpen, ChevronDown, Code2, FlaskConical, GraduationCap, Menu, X, BarChart3 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,13 +26,29 @@ export function Navbar() {
 
         {/* Desktop navigation */}
         <div className="hidden md:flex items-center gap-6">
-          <Link
-            href="/tutorial"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-          >
-            <GraduationCap className="h-4 w-4" />
-            Tutorial
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                <GraduationCap className="h-4 w-4" />
+                Tutorial
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem asChild>
+                <Link href="/tutorial" className="flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4" />
+                  Basics
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tutorial/applied-methods" className="flex items-center gap-2">
+                  <FlaskConical className="h-4 w-4" />
+                  Applied Methods
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link
             href="/problems"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -74,7 +96,15 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               <GraduationCap className="h-4 w-4" />
-              Tutorial
+              Tutorial: Basics
+            </Link>
+            <Link
+              href="/tutorial/applied-methods"
+              className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2 flex items-center gap-2 pl-6"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <FlaskConical className="h-4 w-4" />
+              Applied Methods
             </Link>
             <Link
               href="/problems"

@@ -1,10 +1,15 @@
-import { TutorialPage } from '@/components/tutorial/TutorialPage';
+'use client';
 
-export const metadata = {
-  title: 'Tutorial - LeetMethods',
-  description: 'Learn the basics of Coq proof assistant with an interactive tutorial',
-};
+import { TutorialPage } from '@/components/tutorial/TutorialPage';
+import { tutorialSteps } from '@/lib/tutorial/tutorial-steps';
 
 export default function Tutorial() {
-  return <TutorialPage />;
+  return (
+    <TutorialPage
+      steps={tutorialSteps}
+      title="Tutorial: Basics"
+      storageKey="leetmethods-tutorial-progress"
+      completionLink={{ href: '/tutorial/applied-methods', label: 'Continue to Applied Methods' }}
+    />
+  );
 }

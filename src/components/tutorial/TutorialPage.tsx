@@ -8,22 +8,28 @@ import { CoqEditor, GoalsPanel, EditorToolbar } from '@/components/editor';
 import { getCoqService, resetCoqService, setInitializing } from '@/lib/coq';
 import type { CoqService } from '@/lib/coq';
 import { useCoqStore } from '@/store/coqStore';
-import { tutorialSteps } from '@/lib/tutorial/tutorial-steps';
+import type { TutorialStep } from '@/lib/tutorial/tutorial-steps';
 import Link from 'next/link';
 
-const STORAGE_KEY = 'leetmethods-tutorial-progress';
+interface TutorialPageProps {
+  steps: TutorialStep[];
+  title: string;
+  storageKey: string;
+  /** Link shown after completing the last step */
+  completionLink: { href: string; label: string };
+}
 
-function getStoredStep(): number {
+function getStoredStep(key: string, max: number): number {
   if (typeof window === 'undefined') return 0;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? Math.min(parseInt(stored, 10), tutorialSteps.length - 1) : 0;
+  const stored = localStorage.getItem(key);
+  return stored ? Math.min(parseInt(stored, 10), max) : 0;
 }
 
-function storeStep(step: number): void {
-  localStorage.setItem(STORAGE_KEY, String(step));
+function storeStep(key: string, step: number): void {
+  localStorage.setItem(key, String(step));
 }
 
-export function TutorialPage() {
+export function TutorialPage({ steps, title, storageKey, completionLink }: TutorialPageProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [code, setCode] = useState('');
   const [executedUpTo, setExecutedUpTo] = useState(0);
@@ -44,10 +50,11 @@ export function TutorialPage() {
 
   useEffect(() => {
     setHydrated(true);
-    setCurrentStep(getStoredStep());
+    setCurrentStep(getStoredStep(storageKey, steps.length - 1));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const step = tutorialSteps[currentStep];
+  const step = steps[currentStep];
 
   // Initialize code when step changes
   useEffect(() => {
@@ -70,7 +77,6 @@ export function TutorialPage() {
       onStatusChange: setStatus,
       onGoalsUpdate: (g) => {
         setGoals(g);
-        // Check if proof is complete (no goals after execution)
         if (g.length === 0 && serviceRef.current && serviceRef.current.isProofStarted()) {
           setStepComplete(true);
         }
@@ -150,20 +156,20 @@ export function TutorialPage() {
   }, [step, addMessage]);
 
   const handleNextStep = useCallback(() => {
-    if (currentStep < tutorialSteps.length - 1) {
+    if (currentStep < steps.length - 1) {
       const next = currentStep + 1;
       setCurrentStep(next);
-      storeStep(next);
+      storeStep(storageKey, next);
     }
-  }, [currentStep]);
+  }, [currentStep, steps.length, storageKey]);
 
   const handlePrevStep = useCallback(() => {
     if (currentStep > 0) {
       const prev = currentStep - 1;
       setCurrentStep(prev);
-      storeStep(prev);
+      storeStep(storageKey, prev);
     }
-  }, [currentStep]);
+  }, [currentStep, storageKey]);
 
   if (!hydrated || !step) {
     return (
@@ -177,12 +183,12 @@ export function TutorialPage() {
     <div className="max-w-6xl mx-auto px-4 py-6 h-[calc(100vh-64px)] flex flex-col gap-4">
       {/* Step indicator */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Interactive Tutorial</h1>
+        <h1 className="text-xl font-bold">{title}</h1>
         <div className="flex items-center gap-2">
-          {tutorialSteps.map((_, i) => (
+          {steps.map((_, i) => (
             <button
               key={i}
-              onClick={() => { setCurrentStep(i); storeStep(i); }}
+              onClick={() => { setCurrentStep(i); storeStep(storageKey, i); }}
               className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
                 i === currentStep
                   ? 'bg-primary text-primary-foreground'
@@ -305,15 +311,15 @@ export function TutorialPage() {
           Previous
         </Button>
 
-        {currentStep < tutorialSteps.length - 1 ? (
+        {currentStep < steps.length - 1 ? (
           <Button onClick={handleNextStep} className="gap-1">
             Next Step
             <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Link href="/problems">
+          <Link href={completionLink.href}>
             <Button className="gap-1">
-              Start Solving Problems
+              {completionLink.label}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>

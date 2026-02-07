@@ -106,7 +106,7 @@ Step through the proof to see how \`split\` creates two goals!`,
       template: `Theorem and_intro : forall P Q : Prop, P -> Q -> P /\\ Q.\nProof.\n  (* Your proof here *)\nAdmitted.`,
       solution: `Theorem and_intro : forall P Q : Prop, P -> Q -> P /\\ Q.\nProof.\n  intros P Q HP HQ.\n  split.\n  - exact HP.\n  - exact HQ.\nQed.`,
     },
-    successMessage: 'Congratulations! You completed the tutorial! You now know intros, exact, apply, and split — the building blocks of Coq proofs. Head to the Problems page to practice more!',
+    successMessage: 'Congratulations! You completed the basics! You now know intros, exact, apply, and split — the building blocks of Coq proofs. Continue to Applied Methods to learn destruct, induction, rewrite, and more.',
     hint: 'Type: intros P Q HP HQ. split. - exact HP. - exact HQ.',
   },
 ];
