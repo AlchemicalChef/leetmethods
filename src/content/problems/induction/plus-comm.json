@@ -15,5 +15,9 @@
   "prelude": "Require Import Arith.\nRequire Import Lia.",
   "template": "Theorem plus_comm : forall n m : nat, n + m = m + n.\nProof.\n  (* Your proof here *)\nAdmitted.",
   "solution": "Theorem plus_comm : forall n m : nat, n + m = m + n.\nProof.\n  intros n m.\n  induction n as [| n' IHn'].\n  - simpl. rewrite Nat.add_0_r. reflexivity.\n  - simpl. rewrite IHn'. rewrite Nat.add_succ_r. reflexivity.\nQed.",
-  "forbiddenTactics": ["admit", "Admitted"]
+  "forbiddenTactics": ["admit", "Admitted"],
+  "prerequisites": {
+    "problems": ["plus-n-zero"],
+    "concepts": ["tactic:induction", "tactic:rewrite", "lemma:add_0_r"]
+  }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Play, StepForward, StepBack, RotateCcw, Check, Loader2, AlertCircle, HelpCircle, TextCursorInput } from 'lucide-react';
+import { Play, StepForward, StepBack, RotateCcw, Check, Loader2, AlertCircle, HelpCircle, TextCursorInput, Lightbulb } from 'lucide-react';
 import type { CoqWorkerStatus } from '@/lib/coq/types';
 
 interface EditorToolbarProps {
@@ -14,6 +14,8 @@ interface EditorToolbarProps {
   onSubmit: () => void;
   onShowShortcuts?: () => void;
   canSubmit?: boolean;
+  guidedMode?: boolean;
+  onToggleGuidedMode?: () => void;
 }
 
 export function EditorToolbar({
@@ -26,6 +28,8 @@ export function EditorToolbar({
   onSubmit,
   onShowShortcuts,
   canSubmit = true,
+  guidedMode,
+  onToggleGuidedMode,
 }: EditorToolbarProps) {
   const isReady = status === 'ready';
   const isBusy = status === 'busy' || status === 'loading';
@@ -100,6 +104,21 @@ export function EditorToolbar({
           <span className="text-xs text-red-500 ml-2 hidden sm:inline">
             Click Reset to recover
           </span>
+        )}
+
+        {onToggleGuidedMode && (
+          <>
+            <div className="w-px h-5 bg-border mx-2" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleGuidedMode}
+              title="Toggle guided suggestions"
+              className={guidedMode ? 'text-amber-500 hover:text-amber-600' : ''}
+            >
+              <Lightbulb className="h-4 w-4" />
+            </Button>
+          </>
         )}
 
         {onShowShortcuts && (

@@ -14,5 +14,9 @@
   "prelude": "Require Import Arith.\nRequire Import Lia.",
   "template": "Theorem le_transitive : forall n m p : nat, n <= m -> m <= p -> n <= p.\nProof.\n  (* Your proof here *)\nAdmitted.",
   "solution": "Theorem le_transitive : forall n m p : nat, n <= m -> m <= p -> n <= p.\nProof.\n  intros n m p Hnm Hmp.\n  lia.\nQed.",
-  "forbiddenTactics": ["admit", "Admitted"]
+  "forbiddenTactics": ["admit", "Admitted"],
+  "prerequisites": {
+    "problems": ["le-refl"],
+    "concepts": ["tactic:intros", "tactic:lia"]
+  }
 }

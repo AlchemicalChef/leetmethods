@@ -23,6 +23,7 @@ interface CoqState {
   currentPosition: number;
   errorPosition: number | null;
   proofState: ProofState; // FIX #11: Explicit proof state
+  guidedMode: boolean;
 
   setStatus: (status: CoqStatus) => void;
   setGoals: (goals: CoqGoal[]) => void;
@@ -31,6 +32,8 @@ interface CoqState {
   clearMessages: () => void;
   setCurrentPosition: (position: number) => void;
   setErrorPosition: (position: number | null) => void;
+  toggleGuidedMode: () => void;
+  setGuidedMode: (enabled: boolean) => void;
   reset: () => void;
 }
 
@@ -41,6 +44,7 @@ export const useCoqStore = create<CoqState>((set) => ({
   currentPosition: 0,
   errorPosition: null,
   proofState: 'not_started', // FIX #11: Default to not started
+  guidedMode: false,
 
   setStatus: (status: CoqStatus) => set({ status }),
 
@@ -76,6 +80,9 @@ export const useCoqStore = create<CoqState>((set) => ({
 
   setErrorPosition: (position: number | null) => set({ errorPosition: position }),
 
+  toggleGuidedMode: () => set((state) => ({ guidedMode: !state.guidedMode })),
+  setGuidedMode: (enabled: boolean) => set({ guidedMode: enabled }),
+
   reset: () =>
     set({
       status: 'idle',
@@ -84,6 +91,7 @@ export const useCoqStore = create<CoqState>((set) => ({
       currentPosition: 0,
       errorPosition: null,
       proofState: 'not_started', // FIX #11: Reset proof state
+      // Note: guidedMode is NOT reset - it's a user preference per session
     }),
 }));
 

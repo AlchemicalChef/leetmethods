@@ -11,12 +11,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CheckCircle2, Circle, Search } from 'lucide-react';
+import { CheckCircle2, Circle, Search, RefreshCw } from 'lucide-react';
 import type { ProblemSummary, Difficulty, Category } from '@/lib/problems/types';
+import { PrerequisitesBadge } from './PrerequisitesBadge';
 
 interface ProblemListProps {
   problems: ProblemSummary[];
   completedSlugs: string[];
+  prereqCounts?: Record<string, number>;
+  dueSlugs?: Set<string>;
 }
 
 const difficultyColors: Record<Difficulty, string> = {
@@ -31,7 +34,7 @@ const difficultyOrder: Record<Difficulty, number> = {
   hard: 3,
 };
 
-export function ProblemList({ problems, completedSlugs }: ProblemListProps) {
+export function ProblemList({ problems, completedSlugs, prereqCounts = {}, dueSlugs = new Set() }: ProblemListProps) {
   const [search, setSearch] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
@@ -151,14 +154,20 @@ export function ProblemList({ problems, completedSlugs }: ProblemListProps) {
       <div className="space-y-2">
         {filteredProblems.map((problem) => {
           const isCompleted = completedSlugs.includes(problem.slug);
+          const isDue = dueSlugs.has(problem.slug);
+          const href = problem.isCustom
+            ? `/problems/custom/${problem.slug}`
+            : `/problems/${problem.slug}`;
 
           return (
-            <Link key={problem.id} href={`/problems/${problem.slug}`}>
+            <Link key={problem.id} href={href}>
               <Card className="p-4 hover:bg-muted/50 transition-colors cursor-pointer">
                 <div className="flex items-center gap-4">
                   {/* Status icon */}
                   <div className="flex-shrink-0">
-                    {isCompleted ? (
+                    {isDue ? (
+                      <RefreshCw className="h-5 w-5 text-amber-500" />
+                    ) : isCompleted ? (
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
                     ) : (
                       <Circle className="h-5 w-5 text-muted-foreground" />
@@ -182,6 +191,14 @@ export function ProblemList({ problems, completedSlugs }: ProblemListProps) {
 
                   {/* Badges */}
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {problem.isCustom && (
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800">
+                        Custom
+                      </Badge>
+                    )}
+                    {(prereqCounts[problem.slug] ?? 0) > 0 && (
+                      <PrerequisitesBadge unsatisfiedCount={prereqCounts[problem.slug]} />
+                    )}
                     <Badge variant="outline" className="hidden sm:inline-flex">
                       {problem.category}
                     </Badge>

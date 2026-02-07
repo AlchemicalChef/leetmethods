@@ -7,7 +7,9 @@ import { Separator } from '@/components/ui/separator';
 import type { CoqGoal } from '@/lib/coq/types';
 import type { CoqMessage } from '@/store/coqStore';
 import type { ProblemSummary } from '@/lib/problems/types';
+import type { TacticSuggestion } from '@/lib/coq/tactic-suggester';
 import { formatCoqError } from '@/lib/coq/error-helper';
+import { GuidedProofPanel } from './GuidedProofPanel';
 import Link from 'next/link';
 
 interface GoalsPanelProps {
@@ -16,10 +18,11 @@ interface GoalsPanelProps {
   isLoading?: boolean;
   isComplete?: boolean;
   nextProblem?: ProblemSummary | null;
+  guidedSuggestions?: TacticSuggestion[];
   className?: string;
 }
 
-export function GoalsPanel({ goals, messages = [], isLoading, isComplete, nextProblem, className = '' }: GoalsPanelProps) {
+export function GoalsPanel({ goals, messages = [], isLoading, isComplete, nextProblem, guidedSuggestions, className = '' }: GoalsPanelProps) {
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center h-full bg-muted/30 ${className}`}>
@@ -87,6 +90,11 @@ export function GoalsPanel({ goals, messages = [], isLoading, isComplete, nextPr
               <GoalDisplay key={goal.id} goal={goal} index={index} isFirst={index === 0} />
             ))}
           </>
+        )}
+
+        {/* Guided suggestions */}
+        {guidedSuggestions && guidedSuggestions.length > 0 && (
+          <GuidedProofPanel suggestions={guidedSuggestions} />
         )}
       </div>
     </ScrollArea>

@@ -8,12 +8,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronRight, Lightbulb, BookOpen, Eye } from 'lucide-react';
 import type { Problem, Difficulty } from '@/lib/problems/types';
+import type { PrerequisiteStatus } from '@/lib/prerequisites';
+import { PrerequisitesPanel } from './PrerequisitesPanel';
 
 interface ProblemDescriptionProps {
   problem: Problem;
   hintsRevealed: number;
   onRevealHint: () => void;
   solutionAvailable?: boolean;
+  prerequisiteStatus?: PrerequisiteStatus;
+  isCustom?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
   className?: string;
 }
 
@@ -28,6 +34,10 @@ export function ProblemDescription({
   hintsRevealed,
   onRevealHint,
   solutionAvailable = false,
+  prerequisiteStatus,
+  isCustom,
+  onEdit,
+  onDelete,
   className = '',
 }: ProblemDescriptionProps) {
   const [showPrelude, setShowPrelude] = useState(false);
@@ -50,6 +60,27 @@ export function ProblemDescription({
             ))}
           </div>
         </div>
+
+        {/* Custom problem actions */}
+        {isCustom && (onEdit || onDelete) && (
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                Edit
+              </Button>
+            )}
+            {onDelete && (
+              <Button variant="outline" size="sm" onClick={onDelete} className="text-red-600 hover:text-red-700">
+                Delete
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Prerequisites */}
+        {prerequisiteStatus && (prerequisiteStatus.problemPrereqs.length > 0 || prerequisiteStatus.conceptPrereqs.length > 0) && (
+          <PrerequisitesPanel status={prerequisiteStatus} />
+        )}
 
         <Separator />
 

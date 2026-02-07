@@ -15,5 +15,9 @@
   "prelude": "Require Import List.\nImport ListNotations.\n\n(* Helper lemma - you can use this in your proof *)\nLemma rev_app_distr : forall (A : Type) (l1 l2 : list A),\n  rev (l1 ++ l2) = rev l2 ++ rev l1.\nProof.\n  intros A l1 l2.\n  induction l1 as [| x l1' IH].\n  - simpl. rewrite app_nil_r. reflexivity.\n  - simpl. rewrite IH. rewrite app_assoc. reflexivity.\nQed.",
   "template": "Theorem rev_involutive : forall (A : Type) (l : list A), rev (rev l) = l.\nProof.\n  (* Your proof here *)\n  (* Hint: Use rev_app_distr lemma provided in prelude *)\nAdmitted.",
   "solution": "Theorem rev_involutive : forall (A : Type) (l : list A), rev (rev l) = l.\nProof.\n  intros A l.\n  induction l as [| x l' IHl'].\n  - simpl. reflexivity.\n  - simpl. rewrite rev_app_distr. rewrite IHl'. simpl. reflexivity.\nQed.",
-  "forbiddenTactics": ["admit", "Admitted"]
+  "forbiddenTactics": ["admit", "Admitted"],
+  "prerequisites": {
+    "problems": ["list-length-app"],
+    "concepts": ["tactic:induction", "tactic:rewrite"]
+  }
 }

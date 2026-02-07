@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, ChevronDown, Code2, FlaskConical, GraduationCap, Menu, X, BarChart3 } from 'lucide-react';
+import { BookOpen, ChevronDown, Code2, FlaskConical, GraduationCap, Menu, X, BarChart3, PlusCircle } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,12 +49,28 @@ export function Navbar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Link
-            href="/problems"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Problems
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                Problems
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem asChild>
+                <Link href="/problems" className="flex items-center gap-2">
+                  <Code2 className="h-4 w-4" />
+                  Browse Problems
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/problems/custom/create" className="flex items-center gap-2">
+                  <PlusCircle className="h-4 w-4" />
+                  Create Problem
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link
             href="/learn"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
@@ -112,6 +128,14 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Problems
+            </Link>
+            <Link
+              href="/problems/custom/create"
+              className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2 flex items-center gap-2 pl-6"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <PlusCircle className="h-4 w-4" />
+              Create Problem
             </Link>
             <Link
               href="/learn"

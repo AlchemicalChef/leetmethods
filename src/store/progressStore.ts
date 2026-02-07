@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { createInitialSrs, calculateNextReview, deriveQuality, isReviewDue, daysOverdue } from '@/lib/srs';
+import type { SrsData } from '@/lib/srs';
 
 export interface ProblemProgress {
   slug: string;
@@ -9,12 +11,21 @@ export interface ProblemProgress {
   hintsUsed: number;
   solveStartedAt: number | null;
   solveDurationMs: number | null;
+  srs: SrsData | null;
+  reviewAttempts: number;
+  reviewHintsUsed: number;
+  isReviewing: boolean;
 }
 
 export interface StreakData {
   currentStreak: number;
   longestStreak: number;
   lastSolveDate: string | null; // ISO date string YYYY-MM-DD
+}
+
+export interface DueReviewInfo {
+  slug: string;
+  overdueDays: number;
 }
 
 interface ProgressState {
@@ -29,6 +40,12 @@ interface ProgressState {
   getCompletedSlugs: () => string[];
   startTimer: (slug: string) => void;
   stopTimer: (slug: string) => void;
+  // SRS/Review actions
+  startReview: (slug: string) => void;
+  completeReview: (slug: string) => void;
+  cancelReview: (slug: string) => void;
+  getDueReviews: () => DueReviewInfo[];
+  getReviewStats: () => { totalReviews: number; dueCount: number };
 }
 
 const createDefaultProgress = (slug: string): ProblemProgress => ({
@@ -39,6 +56,10 @@ const createDefaultProgress = (slug: string): ProblemProgress => ({
   hintsUsed: 0,
   solveStartedAt: null,
   solveDurationMs: null,
+  srs: null,
+  reviewAttempts: 0,
+  reviewHintsUsed: 0,
+  isReviewing: false,
 });
 
 export function getDateString(ts: number): string {
@@ -99,6 +120,9 @@ export const useProgressStore = create<ProgressState>()(
 
         const newStreak = updateStreak(streakData);
 
+        // Initialize SRS on first completion
+        const srs = current.srs ?? createInitialSrs();
+
         set({
           progress: {
             ...progress,
@@ -108,6 +132,7 @@ export const useProgressStore = create<ProgressState>()(
               completedAt: Date.now(),
               solveStartedAt: null,
               solveDurationMs: duration,
+              srs,
             },
           },
           streakData: newStreak,
@@ -157,7 +182,8 @@ export const useProgressStore = create<ProgressState>()(
       startTimer: (slug: string) => {
         const { progress } = get();
         const current = progress[slug] ?? createDefaultProgress(slug);
-        if (current.completed || current.solveStartedAt !== null) return; // Don't restart if completed or already running
+        // Allow re-timing during review even if completed
+        if ((current.completed && !current.isReviewing) || current.solveStartedAt !== null) return;
         set({
           progress: {
             ...progress,
@@ -185,16 +211,101 @@ export const useProgressStore = create<ProgressState>()(
           },
         });
       },
+
+      // SRS / Review actions
+      startReview: (slug: string) => {
+        const { progress } = get();
+        const current = progress[slug] ?? createDefaultProgress(slug);
+        set({
+          progress: {
+            ...progress,
+            [slug]: {
+              ...current,
+              isReviewing: true,
+              reviewAttempts: 0,
+              reviewHintsUsed: 0,
+              solveStartedAt: Date.now(),
+            },
+          },
+        });
+      },
+
+      completeReview: (slug: string) => {
+        const { progress } = get();
+        const current = progress[slug];
+        if (!current?.srs) return;
+
+        const quality = deriveQuality(current.reviewAttempts, current.reviewHintsUsed);
+        const newSrs = calculateNextReview(current.srs, quality);
+
+        set({
+          progress: {
+            ...progress,
+            [slug]: {
+              ...current,
+              srs: newSrs,
+              isReviewing: false,
+              reviewAttempts: 0,
+              reviewHintsUsed: 0,
+              solveStartedAt: null,
+            },
+          },
+        });
+      },
+
+      cancelReview: (slug: string) => {
+        const { progress } = get();
+        const current = progress[slug];
+        if (!current) return;
+        set({
+          progress: {
+            ...progress,
+            [slug]: {
+              ...current,
+              isReviewing: false,
+              reviewAttempts: 0,
+              reviewHintsUsed: 0,
+              solveStartedAt: null,
+            },
+          },
+        });
+      },
+
+      getDueReviews: (): DueReviewInfo[] => {
+        const { progress } = get();
+        const due: DueReviewInfo[] = [];
+        for (const p of Object.values(progress)) {
+          if (p.srs && isReviewDue(p.srs)) {
+            due.push({ slug: p.slug, overdueDays: daysOverdue(p.srs) });
+          }
+        }
+        due.sort((a, b) => b.overdueDays - a.overdueDays);
+        return due.slice(0, 5);
+      },
+
+      getReviewStats: () => {
+        const { progress } = get();
+        let totalReviews = 0;
+        let dueCount = 0;
+        for (const p of Object.values(progress)) {
+          if (p.srs) {
+            totalReviews += p.srs.reviewCount;
+            if (isReviewDue(p.srs)) dueCount++;
+          }
+        }
+        return { totalReviews, dueCount };
+      },
     }),
     {
       name: 'leetmethods-progress',
-      version: 2,
+      version: 3,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       migrate: (persisted: unknown, version: number) => {
+        const state = persisted as Record<string, unknown>;
+        const progress = (state.progress ?? {}) as Record<string, Record<string, unknown>>;
+
         if (version < 2) {
-          // Migrate v1 -> v2: add new fields to existing progress entries
-          const state = persisted as Record<string, unknown>;
-          const progress = (state.progress ?? {}) as Record<string, Record<string, unknown>>;
+          // Migrate v1 -> v2: add timer fields
           for (const slug of Object.keys(progress)) {
             if (progress[slug].solveStartedAt === undefined) {
               progress[slug].solveStartedAt = null;
@@ -206,9 +317,32 @@ export const useProgressStore = create<ProgressState>()(
           if (!state.streakData) {
             state.streakData = { currentStreak: 0, longestStreak: 0, lastSolveDate: null };
           }
-          return state as unknown as ProgressState;
         }
-        return persisted as unknown as ProgressState;
+
+        if (version < 3) {
+          // Migrate v2 -> v3: add SRS fields
+          for (const slug of Object.keys(progress)) {
+            if (progress[slug].srs === undefined) {
+              // Initialize SRS for already-completed problems
+              if (progress[slug].completed) {
+                progress[slug].srs = createInitialSrs();
+              } else {
+                progress[slug].srs = null;
+              }
+            }
+            if (progress[slug].reviewAttempts === undefined) {
+              progress[slug].reviewAttempts = 0;
+            }
+            if (progress[slug].reviewHintsUsed === undefined) {
+              progress[slug].reviewHintsUsed = 0;
+            }
+            if (progress[slug].isReviewing === undefined) {
+              progress[slug].isReviewing = false;
+            }
+          }
+        }
+
+        return state as unknown as ProgressState;
       },
     }
   )

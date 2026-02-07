@@ -15,5 +15,9 @@
   "prelude": "Require Import Arith.\nRequire Import PeanoNat.",
   "template": "Theorem mul_comm : forall n m : nat, n * m = m * n.\nProof.\n  (* Your proof here *)\nAdmitted.",
   "solution": "Theorem mul_comm : forall n m : nat, n * m = m * n.\nProof.\n  intros n m.\n  induction n as [| n' IHn'].\n  - simpl. rewrite Nat.mul_0_r. reflexivity.\n  - simpl. rewrite Nat.mul_succ_r. rewrite IHn'. rewrite Nat.add_comm. reflexivity.\nQed.",
-  "forbiddenTactics": ["admit", "Admitted"]
+  "forbiddenTactics": ["admit", "Admitted"],
+  "prerequisites": {
+    "problems": ["plus-comm", "plus-assoc"],
+    "concepts": ["tactic:induction", "tactic:rewrite", "lemma:add_comm"]
+  }
 }

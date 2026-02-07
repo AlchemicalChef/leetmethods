@@ -14,5 +14,9 @@
   "prelude": "Require Import Arith.\nRequire Import PeanoNat.\n\nFixpoint double (n : nat) : nat :=\n  match n with\n  | O => O\n  | S n' => S (S (double n'))\n  end.",
   "template": "Theorem double_plus : forall n : nat, double n = n + n.\nProof.\n  (* Your proof here *)\nAdmitted.",
   "solution": "Theorem double_plus : forall n : nat, double n = n + n.\nProof.\n  intros n.\n  induction n as [| n' IHn'].\n  - simpl. reflexivity.\n  - simpl. rewrite IHn'. rewrite Nat.add_succ_r. reflexivity.\nQed.",
-  "forbiddenTactics": ["admit", "Admitted"]
+  "forbiddenTactics": ["admit", "Admitted"],
+  "prerequisites": {
+    "problems": ["plus-n-zero"],
+    "concepts": ["tactic:induction", "lemma:add_succ_r"]
+  }
 }

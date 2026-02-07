@@ -31,6 +31,9 @@ export const achievements: Achievement[] = [
 
   // Dedication
   { id: 'streak-3', title: 'Hat Trick', description: 'Maintain a 3-day solve streak', icon: '🔥', category: 'dedication' },
+  { id: 'first-review', title: 'First Review', description: 'Complete your first spaced review', icon: '🔄', category: 'dedication' },
+  { id: 'ten-reviews', title: 'Review Master', description: 'Complete 10 spaced reviews', icon: '📚', category: 'dedication' },
+  { id: 'perfect-recall', title: 'Perfect Recall', description: 'Complete a review on the first attempt with no hints', icon: '🧠', category: 'skill' },
 ];
 
 const categoryMap: Record<string, Category> = {
@@ -80,6 +83,23 @@ export function checkAchievements(
 
   // Dedication
   check('streak-3', streakData.longestStreak >= 3 || streakData.currentStreak >= 3);
+
+  // SRS achievements - access srs field if it exists on progress entries
+  const allProgress = Object.values(progress);
+  let totalReviewCount = 0;
+  let hasPerfectRecall = false;
+  for (const p of allProgress) {
+    const entry = p as unknown as { srs?: { reviewCount: number; lastReviewQuality: number } | null };
+    if (entry.srs) {
+      totalReviewCount += entry.srs.reviewCount;
+      if (entry.srs.reviewCount > 0 && entry.srs.lastReviewQuality >= 5) {
+        hasPerfectRecall = true;
+      }
+    }
+  }
+  check('first-review', totalReviewCount >= 1);
+  check('ten-reviews', totalReviewCount >= 10);
+  check('perfect-recall', hasPerfectRecall);
 
   return newlyUnlocked;
 }

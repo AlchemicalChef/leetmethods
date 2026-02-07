@@ -14,6 +14,10 @@ export interface Problem {
   template: string;
   solution: string;
   forbiddenTactics: string[];
+  prerequisites?: {
+    problems?: string[];
+    concepts?: string[];
+  };
 }
 
 export interface ProblemSummary {
@@ -23,4 +27,5 @@ export interface ProblemSummary {
   difficulty: Difficulty;
   category: Category;
   tags: string[];
+  isCustom?: boolean;
 }

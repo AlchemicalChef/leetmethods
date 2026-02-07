@@ -73,6 +73,10 @@ export async function getAllProblems(): Promise<Problem[]> {
   return problems;
 }
 
+export function getAllProblemsSync(): Problem[] {
+  return problems;
+}
+
 export async function getProblemBySlug(slug: string): Promise<Problem | null> {
   return problems.find((p) => p.slug === slug) || null;
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Loader2, AlertCircle } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ChevronDown, ChevronUp, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { CoqEditor, GoalsPanel, EditorToolbar } from '@/components/editor';
 import { KeyboardShortcutsHelp } from '@/components/editor/KeyboardShortcutsHelp';
 import { ProblemDescription } from './ProblemDescription';
@@ -14,6 +15,8 @@ import type { CoqService } from '@/lib/coq';
 import { NextProblemCard } from './NextProblemCard';
 import { getNextRecommendation } from '@/lib/recommendations';
 import { useAchievementChecker } from '@/hooks/useAchievementChecker';
+import { suggestTactics } from '@/lib/coq/tactic-suggester';
+import { getPrerequisiteStatus } from '@/lib/prerequisites';
 import type { Problem, ProblemSummary } from '@/lib/problems/types';
 
 interface ProblemSolverProps {
@@ -23,8 +26,9 @@ interface ProblemSolverProps {
 
 export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps) {
   const { code, loadCode, setCode, saveCode, resetCode } = useEditorStore();
-  const { goals, setGoals, status, setStatus, proofState, setProofState, addMessage, messages, reset: resetCoqStore } = useCoqStore();
-  const { markCompleted, incrementAttempts, incrementHints, getProgress, startTimer, stopTimer } = useProgressStore();
+  const { goals, setGoals, status, setStatus, proofState, setProofState, addMessage, messages, reset: resetCoqStore, guidedMode, toggleGuidedMode } = useCoqStore();
+  const { markCompleted, incrementAttempts, incrementHints, getProgress, startTimer, stopTimer, startReview, completeReview } = useProgressStore();
+  const searchParams = useSearchParams();
 
   const { checkAndUnlock } = useAchievementChecker(allProblems);
 
@@ -36,6 +40,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [executedUpTo, setExecutedUpTo] = useState(0);
   const [hydrated, setHydrated] = useState(false);
+  const isReviewMode = searchParams.get('review') === 'true';
 
   // Use refs to capture values at execution time (avoid stale closures)
   const codeRef = useRef(code);
@@ -109,7 +114,10 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     // Initialize Coq service
     initializeCoqService();
 
-    // Start solve timer
+    // Start review or solve timer
+    if (isReviewMode) {
+      startReview(problem.slug);
+    }
     startTimer(problem.slug);
 
     return () => {
@@ -210,10 +218,17 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
       const result = await serviceRef.current.verify(problem.prelude, currentCode, problem.forbiddenTactics);
 
       if (result.success) {
-        markCompleted(problem.slug);
+        if (isReviewMode) {
+          completeReview(problem.slug);
+          addMessage('success', 'Review completed! Your SRS schedule has been updated.');
+        } else {
+          markCompleted(problem.slug);
+        }
         setSubmissionResult('success');
         setProofState('completed');
-        addMessage('success', 'Proof accepted! Congratulations!');
+        if (!isReviewMode) {
+          addMessage('success', 'Proof accepted! Congratulations!');
+        }
         checkAndUnlock();
       } else {
         setSubmissionResult('failure');
@@ -289,12 +304,23 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     ? getNextRecommendation(problem, allProblems, completedSlugs)
     : null;
 
+  const guidedSuggestions = useMemo(() => {
+    if (!guidedMode || goals.length === 0) return [];
+    return suggestTactics({ goals, forbiddenTactics: problem.forbiddenTactics });
+  }, [guidedMode, goals, problem.forbiddenTactics]);
+
+  const prerequisiteStatus = useMemo(() => {
+    if (!problem.prerequisites || allProblems.length === 0) return undefined;
+    return getPrerequisiteStatus(problem, completedSlugs, allProblems as Problem[]);
+  }, [problem, completedSlugs, allProblems]);
+
   const descriptionPanel = (
     <ProblemDescription
       problem={problem}
       hintsRevealed={hintsRevealed}
       onRevealHint={handleRevealHint}
       solutionAvailable={solutionAvailable}
+      prerequisiteStatus={prerequisiteStatus}
       className="flex-1"
     />
   );
@@ -331,7 +357,17 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
         onSubmit={handleSubmit}
         onShowShortcuts={() => setShortcutsOpen(true)}
         canSubmit={status === 'ready' || status === 'error'}
+        guidedMode={guidedMode}
+        onToggleGuidedMode={toggleGuidedMode}
       />
+
+      {/* Review mode banner */}
+      {isReviewMode && !submissionResult && (
+        <div className="px-4 py-2 text-sm font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 flex items-center gap-2">
+          <RefreshCw className="h-3.5 w-3.5" />
+          Review Mode - Solve this problem again to update your SRS schedule
+        </div>
+      )}
 
       {/* Submission result banner */}
       {submissionResult && (
@@ -388,6 +424,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
               isLoading={status === 'busy' || status === 'loading'}
               isComplete={isComplete}
               nextProblem={nextProblem}
+              guidedSuggestions={guidedMode ? guidedSuggestions : undefined}
               className="h-[calc(100%-37px)]"
             />
           )}

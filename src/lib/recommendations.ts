@@ -5,8 +5,15 @@ const difficultyOrder: Record<Difficulty, number> = { easy: 0, medium: 1, hard: 
 export function getNextRecommendation(
   currentProblem: ProblemSummary,
   allProblems: ProblemSummary[],
-  completedSlugs: string[]
+  completedSlugs: string[],
+  dueSlugs?: string[]
 ): ProblemSummary | null {
+  // Priority 0: Suggest due reviews before new problems
+  if (dueSlugs && dueSlugs.length > 0) {
+    const dueReview = allProblems.find((p) => dueSlugs.includes(p.slug) && p.slug !== currentProblem.slug);
+    if (dueReview) return dueReview;
+  }
+
   const completed = new Set(completedSlugs);
   const unsolved = allProblems.filter((p) => !completed.has(p.slug) && p.slug !== currentProblem.slug);
 

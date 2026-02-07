@@ -8,6 +8,7 @@ import { useProgressStore } from '@/store/progressStore';
 import { computeStats, formatDuration } from '@/lib/stats';
 import type { ProblemSummary, Category } from '@/lib/problems/types';
 import { AchievementGrid } from '@/components/achievements/AchievementGrid';
+import { ReviewSection } from '@/components/stats/ReviewSection';
 
 interface StatsOverviewProps {
   problems: ProblemSummary[];
@@ -137,6 +138,12 @@ export function StatsOverview({ problems }: StatsOverviewProps) {
           </div>
         </Card>
       </div>
+      {/* Due for Review */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Due for Review</h3>
+        <ReviewSection problems={problems} />
+      </div>
+
       {/* Achievements */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Achievements</h3>

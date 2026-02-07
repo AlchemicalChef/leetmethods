@@ -14,5 +14,9 @@
   "prelude": "Require Import Arith.",
   "template": "Theorem plus_assoc : forall n m p : nat, (n + m) + p = n + (m + p).\nProof.\n  (* Your proof here *)\nAdmitted.",
   "solution": "Theorem plus_assoc : forall n m p : nat, (n + m) + p = n + (m + p).\nProof.\n  intros n m p.\n  induction n as [| n' IHn'].\n  - simpl. reflexivity.\n  - simpl. rewrite IHn'. reflexivity.\nQed.",
-  "forbiddenTactics": ["admit", "Admitted"]
+  "forbiddenTactics": ["admit", "Admitted"],
+  "prerequisites": {
+    "problems": ["plus-n-zero"],
+    "concepts": ["tactic:induction", "tactic:rewrite", "tactic:simpl"]
+  }
 }
