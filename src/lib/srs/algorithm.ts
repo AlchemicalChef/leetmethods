@@ -49,8 +49,6 @@ export function calculateNextReview(current: SrsData, quality: number): SrsData 
   // SM-2 interval calculation
   let newInterval: number;
   if (reviewCount === 1) {
-    newInterval = 1;
-  } else if (reviewCount === 2) {
     newInterval = 6;
   } else {
     newInterval = Math.min(MAX_INTERVAL, Math.round(current.interval * newEase));
@@ -62,6 +60,18 @@ export function calculateNextReview(current: SrsData, quality: number): SrsData 
     nextReviewAt: Date.now() + newInterval * MS_PER_DAY,
     reviewCount,
     lastReviewQuality: quality,
+  };
+}
+
+export function createMigratedSrs(index: number): SrsData {
+  // Stagger migrated reviews over 14 days to avoid overwhelming users
+  const staggerDays = 1 + (index % 14);
+  return {
+    easeFactor: 2.5,
+    interval: staggerDays,
+    nextReviewAt: Date.now() + staggerDays * MS_PER_DAY,
+    reviewCount: 0,
+    lastReviewQuality: 5,
   };
 }
 

@@ -84,15 +84,14 @@ export function checkAchievements(
   // Dedication
   check('streak-3', streakData.longestStreak >= 3 || streakData.currentStreak >= 3);
 
-  // SRS achievements - access srs field if it exists on progress entries
+  // SRS achievements
   const allProgress = Object.values(progress);
   let totalReviewCount = 0;
   let hasPerfectRecall = false;
   for (const p of allProgress) {
-    const entry = p as unknown as { srs?: { reviewCount: number; lastReviewQuality: number } | null };
-    if (entry.srs) {
-      totalReviewCount += entry.srs.reviewCount;
-      if (entry.srs.reviewCount > 0 && entry.srs.lastReviewQuality >= 5) {
+    if (p.srs) {
+      totalReviewCount += p.srs.reviewCount;
+      if (p.srs.reviewCount > 0 && p.srs.lastReviewQuality >= 5) {
         hasPerfectRecall = true;
       }
     }

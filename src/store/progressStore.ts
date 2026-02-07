@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createInitialSrs, calculateNextReview, deriveQuality, isReviewDue, daysOverdue } from '@/lib/srs';
+import { createInitialSrs, createMigratedSrs, calculateNextReview, deriveQuality, isReviewDue, daysOverdue } from '@/lib/srs';
 import type { SrsData } from '@/lib/srs';
+
+const DAILY_REVIEW_CAP = 5;
 
 export interface ProblemProgress {
   slug: string;
@@ -36,6 +38,8 @@ interface ProgressState {
   markCompleted: (slug: string) => void;
   incrementAttempts: (slug: string) => void;
   incrementHints: (slug: string) => void;
+  incrementReviewAttempts: (slug: string) => void;
+  incrementReviewHints: (slug: string) => void;
   getCompletedCount: () => number;
   getCompletedSlugs: () => string[];
   startTimer: (slug: string) => void;
@@ -167,6 +171,34 @@ export const useProgressStore = create<ProgressState>()(
         });
       },
 
+      incrementReviewAttempts: (slug: string) => {
+        const { progress } = get();
+        const current = progress[slug] ?? createDefaultProgress(slug);
+        set({
+          progress: {
+            ...progress,
+            [slug]: {
+              ...current,
+              reviewAttempts: current.reviewAttempts + 1,
+            },
+          },
+        });
+      },
+
+      incrementReviewHints: (slug: string) => {
+        const { progress } = get();
+        const current = progress[slug] ?? createDefaultProgress(slug);
+        set({
+          progress: {
+            ...progress,
+            [slug]: {
+              ...current,
+              reviewHintsUsed: current.reviewHintsUsed + 1,
+            },
+          },
+        });
+      },
+
       getCompletedCount: () => {
         const { progress } = get();
         return Object.values(progress).filter((p) => p.completed).length;
@@ -280,7 +312,7 @@ export const useProgressStore = create<ProgressState>()(
           }
         }
         due.sort((a, b) => b.overdueDays - a.overdueDays);
-        return due.slice(0, 5);
+        return due.slice(0, DAILY_REVIEW_CAP);
       },
 
       getReviewStats: () => {
@@ -321,11 +353,12 @@ export const useProgressStore = create<ProgressState>()(
 
         if (version < 3) {
           // Migrate v2 -> v3: add SRS fields
+          let completedIndex = 0;
           for (const slug of Object.keys(progress)) {
             if (progress[slug].srs === undefined) {
-              // Initialize SRS for already-completed problems
+              // Initialize SRS for already-completed problems, staggered over 14 days
               if (progress[slug].completed) {
-                progress[slug].srs = createInitialSrs();
+                progress[slug].srs = createMigratedSrs(completedIndex++);
               } else {
                 progress[slug].srs = null;
               }

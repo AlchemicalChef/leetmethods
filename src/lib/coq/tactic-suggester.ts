@@ -16,6 +16,8 @@ interface SuggestionContext {
   forbiddenTactics?: string[];
 }
 
+const MAX_SUGGESTIONS = 3;
+
 interface Rule {
   confidence: Confidence;
   match: (goal: CoqGoal) => boolean;
@@ -149,7 +151,7 @@ export function suggestTactics(context: SuggestionContext): TacticSuggestion[] {
   const allRules = [...highConfidenceRules, ...mediumConfidenceRules, ...lowConfidenceRules];
 
   for (const rule of allRules) {
-    if (suggestions.length >= 3) break;
+    if (suggestions.length >= MAX_SUGGESTIONS) break;
     if (forbidden.has(rule.tactic.toLowerCase())) continue;
     if (seen.has(rule.tactic)) continue;
 

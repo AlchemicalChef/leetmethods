@@ -13,8 +13,11 @@ interface ProblemListWithProgressProps {
 }
 
 export function ProblemListWithProgress({ problems, fullProblems = [] }: ProblemListWithProgressProps) {
-  const { getCompletedSlugs } = useProgressStore();
-  const completedSlugs = getCompletedSlugs();
+  const progress = useProgressStore((s) => s.progress);
+  const completedSlugs = useMemo(
+    () => Object.values(progress).filter((p) => p.completed).map((p) => p.slug),
+    [progress]
+  );
   const getCustomSummaries = useCustomProblemStore((s) => s.getCustomSummaries);
   const getDueReviews = useProgressStore((s) => s.getDueReviews);
 

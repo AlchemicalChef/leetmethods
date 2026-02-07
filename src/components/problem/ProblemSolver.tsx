@@ -27,7 +27,7 @@ interface ProblemSolverProps {
 export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps) {
   const { code, loadCode, setCode, saveCode, resetCode } = useEditorStore();
   const { goals, setGoals, status, setStatus, proofState, setProofState, addMessage, messages, reset: resetCoqStore, guidedMode, toggleGuidedMode } = useCoqStore();
-  const { markCompleted, incrementAttempts, incrementHints, getProgress, startTimer, stopTimer, startReview, completeReview } = useProgressStore();
+  const { markCompleted, incrementAttempts, incrementHints, incrementReviewAttempts, incrementReviewHints, getProgress, startTimer, stopTimer, startReview, completeReview } = useProgressStore();
   const searchParams = useSearchParams();
 
   const { checkAndUnlock } = useAchievementChecker(allProblems);
@@ -211,7 +211,11 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     setSubmissionResult(null);
 
     try {
-      incrementAttempts(problem.slug);
+      if (isReviewMode) {
+        incrementReviewAttempts(problem.slug);
+      } else {
+        incrementAttempts(problem.slug);
+      }
       saveCode();
 
       const currentCode = codeRef.current;
@@ -261,15 +265,18 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     } finally {
       submittingRef.current = false;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [problem, saveCode, markCompleted, incrementAttempts, addMessage, setProofState]);
+  }, [problem, saveCode, markCompleted, incrementAttempts, incrementReviewAttempts, isReviewMode, completeReview, checkAndUnlock, addMessage, setProofState]);
 
   const handleRevealHint = useCallback(() => {
     if (hintsRevealed < problem.hints.length) {
       setHintsRevealed((prev) => prev + 1);
-      incrementHints(problem.slug);
+      if (isReviewMode) {
+        incrementReviewHints(problem.slug);
+      } else {
+        incrementHints(problem.slug);
+      }
     }
-  }, [hintsRevealed, problem.hints.length, problem.slug, incrementHints]);
+  }, [hintsRevealed, problem.hints.length, problem.slug, isReviewMode, incrementHints, incrementReviewHints]);
 
   // Wait for client hydration before reading persisted store values
   useEffect(() => {

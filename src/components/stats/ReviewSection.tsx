@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,8 +14,11 @@ interface ReviewSectionProps {
 }
 
 export function ReviewSection({ problems }: ReviewSectionProps) {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
+
   const getDueReviews = useProgressStore((s) => s.getDueReviews);
-  const dueReviews = getDueReviews();
+  const dueReviews = hydrated ? getDueReviews() : [];
   const problemMap = new Map(problems.map((p) => [p.slug, p]));
 
   if (dueReviews.length === 0) {
