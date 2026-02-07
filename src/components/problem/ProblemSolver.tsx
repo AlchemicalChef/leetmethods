@@ -110,6 +110,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const handleCodeChange = useCallback(
     (newCode: string) => {
       setCode(newCode);
+      setSubmissionResult(null);
     },
     [setCode]
   );
