@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { computePathProgress } from './progress';
-import type { ProblemProgress } from '@/store/progressStore';
+import type { ProblemProgress } from '@/lib/types/progress';
 import type { LearningPath, PathStep } from './types';
+import { makeProgress } from '@/test/factories';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -24,23 +25,6 @@ function makePath(slugs: string[], overrides: Partial<LearningPath> = {}): Learn
     icon: 'book',
     steps: slugs.map(makeStep),
     ...overrides,
-  };
-}
-
-function makeProgress(
-  slug: string,
-  completed: boolean,
-  opts: Partial<Omit<ProblemProgress, 'slug' | 'completed'>> = {}
-): ProblemProgress {
-  return {
-    slug,
-    completed,
-    completedAt: completed ? Date.now() : null,
-    attempts: 1,
-    hintsUsed: 0,
-    solveStartedAt: null,
-    solveDurationMs: null,
-    ...opts,
   };
 }
 

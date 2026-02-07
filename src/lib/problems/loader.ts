@@ -77,10 +77,6 @@ export function getAllProblemsSync(): Problem[] {
   return problems;
 }
 
-export async function getProblemBySlug(slug: string): Promise<Problem | null> {
-  return problems.find((p) => p.slug === slug) || null;
-}
-
 export async function getProblemSummaries(): Promise<ProblemSummary[]> {
   return problems.map(({ id, slug, title, difficulty, category, tags }) => ({
     id,
@@ -92,10 +88,3 @@ export async function getProblemSummaries(): Promise<ProblemSummary[]> {
   }));
 }
 
-export function getProblemsByCategory(category: string): Problem[] {
-  return problems.filter((p) => p.category === category);
-}
-
-export function getProblemsByDifficulty(difficulty: string): Problem[] {
-  return problems.filter((p) => p.difficulty === difficulty);
-}

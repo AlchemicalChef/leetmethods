@@ -8,18 +8,13 @@ import { getPathBySlug } from '@/lib/paths/loader';
 import { PathStepList } from '@/components/learn/PathStepList';
 import { useProgressStore } from '@/store/progressStore';
 import { computePathProgress } from '@/lib/paths/progress';
-
-const difficultyColors = {
-  beginner: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  intermediate: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  advanced: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-};
+import { PATH_DIFFICULTY_COLORS } from '@/lib/ui-constants';
 
 export default function PathDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
   const path = getPathBySlug(slug);
-  const { progress } = useProgressStore();
+  const progress = useProgressStore((s) => s.progress);
 
   if (!path) {
     return (
@@ -49,7 +44,7 @@ export default function PathDetailPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-3xl font-bold">{path.title}</h1>
-            <Badge className={difficultyColors[path.difficulty]}>
+            <Badge className={PATH_DIFFICULTY_COLORS[path.difficulty]}>
               {path.difficulty}
             </Badge>
           </div>

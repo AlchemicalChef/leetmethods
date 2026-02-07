@@ -52,6 +52,7 @@ export function EditorToolbar({
           onClick={onExecutePrev}
           disabled={!canExecute}
           title="Previous step (Alt+P or Alt+↑)"
+          aria-label="Previous step"
         >
           <StepBack className="h-4 w-4" />
         </Button>
@@ -62,6 +63,7 @@ export function EditorToolbar({
           onClick={onExecuteNext}
           disabled={!canExecute}
           title="Next step (Alt+N or Alt+↓)"
+          aria-label="Next step"
         >
           <StepForward className="h-4 w-4" />
         </Button>
@@ -72,6 +74,7 @@ export function EditorToolbar({
           onClick={onExecuteAll}
           disabled={!canExecute}
           title="Execute all (Alt+Enter or Alt+→)"
+          aria-label="Execute all"
         >
           <Play className="h-4 w-4" />
           <span className="ml-1 hidden sm:inline">Run</span>
@@ -84,6 +87,7 @@ export function EditorToolbar({
             onClick={onExecuteToCursor}
             disabled={!canExecute}
             title="Execute to cursor (Ctrl+Shift+Enter)"
+            aria-label="Execute to cursor"
           >
             <TextCursorInput className="h-4 w-4" />
           </Button>
@@ -95,6 +99,7 @@ export function EditorToolbar({
           onClick={onReset}
           disabled={!canReset}
           title={isError ? "Reset to recover from error" : "Reset execution"}
+          aria-label="Reset"
         >
           <RotateCcw className="h-4 w-4" />
         </Button>
@@ -114,6 +119,8 @@ export function EditorToolbar({
               size="sm"
               onClick={onToggleGuidedMode}
               title="Toggle guided suggestions"
+              aria-label="Toggle guided suggestions"
+              aria-pressed={guidedMode}
               className={guidedMode ? 'text-amber-500 hover:text-amber-600' : ''}
             >
               <Lightbulb className="h-4 w-4" />
@@ -129,6 +136,7 @@ export function EditorToolbar({
               size="sm"
               onClick={onShowShortcuts}
               title="Keyboard shortcuts (?)"
+              aria-label="Keyboard shortcuts"
             >
               <HelpCircle className="h-4 w-4" />
             </Button>
@@ -141,6 +149,7 @@ export function EditorToolbar({
         size="sm"
         onClick={onSubmit}
         disabled={!canSubmit || isBusy}
+        aria-label="Submit proof"
         className="bg-green-600 hover:bg-green-700"
       >
         {isBusy ? (

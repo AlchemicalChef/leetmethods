@@ -196,11 +196,11 @@ describe('tacticDocMap', () => {
 
 describe('Category coverage', () => {
   it('every entry has a recognized category from the known list', () => {
-    const knownCategoriesSet = new Set(KNOWN_CATEGORIES);
+    const knownCategoriesSet = new Set<string>(KNOWN_CATEGORIES);
 
     tacticDocs.forEach((doc, index) => {
       expect(
-        knownCategoriesSet.has(doc.category as string),
+        knownCategoriesSet.has(doc.category),
         `Entry at index ${index} (${doc.name}) has unrecognized category: "${doc.category}"`
       ).toBe(true);
     });

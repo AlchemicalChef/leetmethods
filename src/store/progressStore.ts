@@ -1,34 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { safeStorage } from '@/lib/safe-storage';
 import { createInitialSrs, createMigratedSrs, calculateNextReview, deriveQuality, isReviewDue, daysOverdue } from '@/lib/srs';
-import type { SrsData } from '@/lib/srs';
+import type { ProblemProgress, StreakData, DueReviewInfo } from '@/lib/types/progress';
+
+export type { ProblemProgress, StreakData, DueReviewInfo };
 
 const DAILY_REVIEW_CAP = 5;
-
-export interface ProblemProgress {
-  slug: string;
-  completed: boolean;
-  completedAt: number | null;
-  attempts: number;
-  hintsUsed: number;
-  solveStartedAt: number | null;
-  solveDurationMs: number | null;
-  srs: SrsData | null;
-  reviewAttempts: number;
-  reviewHintsUsed: number;
-  isReviewing: boolean;
-}
-
-export interface StreakData {
-  currentStreak: number;
-  longestStreak: number;
-  lastSolveDate: string | null; // ISO date string YYYY-MM-DD
-}
-
-export interface DueReviewInfo {
-  slug: string;
-  overdueDays: number;
-}
 
 interface ProgressState {
   progress: Record<string, ProblemProgress>;
@@ -100,6 +78,24 @@ export function updateStreak(streakData: StreakData): StreakData {
   };
 }
 
+type NumericProgressField = 'attempts' | 'hintsUsed' | 'reviewAttempts' | 'reviewHintsUsed';
+
+function incrementField(
+  get: () => ProgressState,
+  set: (partial: Partial<ProgressState>) => void,
+  slug: string,
+  field: NumericProgressField
+): void {
+  const { progress } = get();
+  const current = progress[slug] ?? createDefaultProgress(slug);
+  set({
+    progress: {
+      ...progress,
+      [slug]: { ...current, [field]: (current[field] as number) + 1 },
+    },
+  });
+}
+
 export const useProgressStore = create<ProgressState>()(
   persist(
     (set, get) => ({
@@ -143,61 +139,10 @@ export const useProgressStore = create<ProgressState>()(
         });
       },
 
-      incrementAttempts: (slug: string) => {
-        const { progress } = get();
-        const current = progress[slug] ?? createDefaultProgress(slug);
-        set({
-          progress: {
-            ...progress,
-            [slug]: {
-              ...current,
-              attempts: current.attempts + 1,
-            },
-          },
-        });
-      },
-
-      incrementHints: (slug: string) => {
-        const { progress } = get();
-        const current = progress[slug] ?? createDefaultProgress(slug);
-        set({
-          progress: {
-            ...progress,
-            [slug]: {
-              ...current,
-              hintsUsed: current.hintsUsed + 1,
-            },
-          },
-        });
-      },
-
-      incrementReviewAttempts: (slug: string) => {
-        const { progress } = get();
-        const current = progress[slug] ?? createDefaultProgress(slug);
-        set({
-          progress: {
-            ...progress,
-            [slug]: {
-              ...current,
-              reviewAttempts: current.reviewAttempts + 1,
-            },
-          },
-        });
-      },
-
-      incrementReviewHints: (slug: string) => {
-        const { progress } = get();
-        const current = progress[slug] ?? createDefaultProgress(slug);
-        set({
-          progress: {
-            ...progress,
-            [slug]: {
-              ...current,
-              reviewHintsUsed: current.reviewHintsUsed + 1,
-            },
-          },
-        });
-      },
+      incrementAttempts: (slug: string) => incrementField(get, set, slug, 'attempts'),
+      incrementHints: (slug: string) => incrementField(get, set, slug, 'hintsUsed'),
+      incrementReviewAttempts: (slug: string) => incrementField(get, set, slug, 'reviewAttempts'),
+      incrementReviewHints: (slug: string) => incrementField(get, set, slug, 'reviewHintsUsed'),
 
       getCompletedCount: () => {
         const { progress } = get();
@@ -331,6 +276,7 @@ export const useProgressStore = create<ProgressState>()(
     {
       name: 'leetmethods-progress',
       version: 3,
+      storage: safeStorage,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       migrate: (persisted: unknown, version: number) => {
         const state = persisted as Record<string, unknown>;

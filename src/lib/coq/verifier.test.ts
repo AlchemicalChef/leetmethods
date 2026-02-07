@@ -1,21 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkForbiddenTactics, isProofComplete, createVerificationResult } from './verifier';
-import type { CoqGoal, CoqMessage } from './types';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const goal = (id: number, conclusion: string): CoqGoal => ({
-  id,
-  hypotheses: [],
-  conclusion,
-});
-
-const msg = (
-  type: CoqMessage['type'],
-  content: string,
-): CoqMessage => ({ type, content });
+import { checkForbiddenTactics, isProofComplete } from './verifier';
 
 // ---------------------------------------------------------------------------
 // checkForbiddenTactics
@@ -237,94 +221,6 @@ describe('isProofComplete', () => {
 });
 
 // ---------------------------------------------------------------------------
-// createVerificationResult
-// ---------------------------------------------------------------------------
-
-describe('createVerificationResult', () => {
-  const validCode = 'Proof. intros. reflexivity. Qed.';
-
-  it('returns success when goals=[], errors=[], has Qed, no forbidden', () => {
-    const result = createVerificationResult([], [], [], validCode, ['admit']);
-    expect(result.success).toBe(true);
-    expect(result.isComplete).toBe(true);
-    expect(result.hasForbiddenTactics).toBe(false);
-    expect(result.forbiddenTacticsFound).toEqual([]);
-    expect(result.goals).toEqual([]);
-    expect(result.errors).toEqual([]);
-  });
-
-  it('fails when there are remaining goals', () => {
-    const goals = [goal(1, 'True')];
-    const result = createVerificationResult(goals, [], [], validCode, []);
-    expect(result.success).toBe(false);
-    expect(result.isComplete).toBe(false);
-    expect(result.goals).toEqual(goals);
-  });
-
-  it('fails when forbidden tactics are used', () => {
-    const code = 'Proof. admit. Qed.';
-    const result = createVerificationResult([], [], [], code, ['admit']);
-    expect(result.success).toBe(false);
-    expect(result.isComplete).toBe(false);
-    expect(result.hasForbiddenTactics).toBe(true);
-    expect(result.forbiddenTacticsFound).toEqual(['admit']);
-  });
-
-  it('fails when code is missing Qed (not complete)', () => {
-    const code = 'Proof. intros. reflexivity.';
-    const result = createVerificationResult([], [], [], code, []);
-    expect(result.success).toBe(false);
-    expect(result.isComplete).toBe(false);
-  });
-
-  it('fails when errors are present even with Qed and no goals', () => {
-    const errors = ['Syntax error on line 3'];
-    const result = createVerificationResult([], [], errors, validCode, []);
-    expect(result.success).toBe(false);
-    expect(result.isComplete).toBe(false);
-    expect(result.errors).toEqual(errors);
-  });
-
-  it('passes through messages unchanged', () => {
-    const messages = [msg('info', 'some info'), msg('warning', 'a warning')];
-    const result = createVerificationResult([], messages, [], validCode, []);
-    expect(result.messages).toEqual(messages);
-  });
-
-  it('fails when both goals remain and forbidden tactics are present', () => {
-    const code = 'Proof. admit. Qed.';
-    const goals = [goal(1, 'False')];
-    const result = createVerificationResult(goals, [], [], code, ['admit']);
-    expect(result.success).toBe(false);
-    expect(result.isComplete).toBe(false);
-    expect(result.hasForbiddenTactics).toBe(true);
-  });
-
-  it('returns correct structure for a fully failing proof', () => {
-    const code = 'Proof. admit.';
-    const goals = [goal(1, 'nat')];
-    const errors = ['Error: not focused'];
-    const messages = [msg('error', 'Error: not focused')];
-    const result = createVerificationResult(
-      goals,
-      messages,
-      errors,
-      code,
-      ['admit', 'Admitted'],
-    );
-    expect(result).toEqual({
-      success: false,
-      goals,
-      errors,
-      messages,
-      hasForbiddenTactics: true,
-      forbiddenTacticsFound: ['admit'],
-      isComplete: false,
-    });
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Edge cases (comment stripping exercised through public API)
 // ---------------------------------------------------------------------------
 
@@ -344,9 +240,6 @@ describe('edge cases', () => {
   it('handles empty string for all functions', () => {
     expect(checkForbiddenTactics('', []).hasForbidden).toBe(false);
     expect(isProofComplete('')).toBe(false);
-    const result = createVerificationResult([], [], [], '', []);
-    expect(result.success).toBe(false);
-    expect(result.isComplete).toBe(false);
   });
 
   it('handles code with no comments and no tactics normally', () => {

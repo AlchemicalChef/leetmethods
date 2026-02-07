@@ -1,4 +1,4 @@
-import type { ProblemProgress } from '@/store/progressStore';
+import type { ProblemProgress } from '@/lib/types/progress';
 import type { LearningPath } from './types';
 
 export interface PathProgress {

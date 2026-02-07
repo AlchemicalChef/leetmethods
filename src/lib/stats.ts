@@ -1,5 +1,6 @@
-import type { ProblemProgress, StreakData } from '@/store/progressStore';
+import type { ProblemProgress, StreakData } from '@/lib/types/progress';
 import type { ProblemSummary, Category } from '@/lib/problems/types';
+import { CATEGORY_ORDER } from '@/lib/ui-constants';
 
 export interface StatsData {
   totalProblems: number;
@@ -21,8 +22,6 @@ export interface CategoryStat {
   total: number;
   percent: number;
 }
-
-const CATEGORY_ORDER: Category[] = ['logic', 'induction', 'lists', 'arithmetic', 'data-structures', 'relations'];
 
 export function computeStats(
   progress: Record<string, ProblemProgress>,

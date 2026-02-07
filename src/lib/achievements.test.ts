@@ -1,41 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { achievements, checkAchievements } from './achievements';
-import type { ProblemProgress, StreakData } from '@/store/progressStore';
-import type { ProblemSummary, Category, Difficulty } from '@/lib/problems/types';
+import type { ProblemProgress, StreakData } from '@/lib/types/progress';
+import type { ProblemSummary } from '@/lib/problems/types';
+import { makeProgress, makeProblem, NO_STREAK } from '@/test/factories';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function makeProblem(
-  slug: string,
-  category: Category,
-  difficulty: Difficulty = 'easy'
-): ProblemSummary {
-  return { id: slug, slug, title: slug, difficulty, category, tags: [] };
-}
-
-function makeProgress(
-  slug: string,
-  completed: boolean,
-  opts?: Partial<Pick<ProblemProgress, 'attempts' | 'hintsUsed'>>
-): ProblemProgress {
-  return {
-    slug,
-    completed,
-    completedAt: completed ? Date.now() : null,
-    attempts: opts?.attempts ?? 1,
-    hintsUsed: opts?.hintsUsed ?? 0,
-    solveStartedAt: null,
-    solveDurationMs: null,
-  };
-}
-
-const defaultStreak: StreakData = {
-  currentStreak: 0,
-  longestStreak: 0,
-  lastSolveDate: null,
-};
+const defaultStreak = NO_STREAK;
 
 // ---------------------------------------------------------------------------
 // Achievements array sanity checks

@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Problem, ProblemSummary } from '@/lib/problems/types';
+import type { Problem, ProblemSummary, Difficulty } from '@/lib/problems/types';
 import { generateSlug } from '@/lib/problems/slug';
+import { safeStorage } from '@/lib/safe-storage';
+import { CATEGORY_ORDER } from '@/lib/ui-constants';
+
+const VALID_DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
 
 interface CustomProblemStore {
   problems: Record<string, Problem>;
@@ -100,8 +104,8 @@ export const useCustomProblemStore = create<CustomProblemStore>()(
               id,
               slug,
               title: item.title,
-              difficulty: item.difficulty || 'medium',
-              category: item.category || 'logic',
+              difficulty: VALID_DIFFICULTIES.includes(item.difficulty) ? item.difficulty : 'medium',
+              category: CATEGORY_ORDER.includes(item.category) ? item.category : 'logic',
               tags: item.tags || [],
               description: item.description || '',
               hints: item.hints || [],
@@ -125,6 +129,7 @@ export const useCustomProblemStore = create<CustomProblemStore>()(
     {
       name: 'leetmethods-custom-problems',
       version: 1,
+      storage: safeStorage,
     }
   )
 );

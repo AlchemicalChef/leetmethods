@@ -3,6 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, BookOpen, Code, Trophy, Zap } from 'lucide-react';
+import { getAllProblemsSync } from '@/lib/problems/loader';
+
+const categoryCounts = (() => {
+  const problems = getAllProblemsSync();
+  const counts: Record<string, number> = {};
+  for (const p of problems) counts[p.category] = (counts[p.category] ?? 0) + 1;
+  return counts;
+})();
 
 export default function Home() {
   return (
@@ -74,33 +82,33 @@ export default function Home() {
             <CategoryCard
               title="Logic"
               description="Propositional and predicate logic proofs"
-              count={6}
+              count={categoryCounts['logic'] ?? 0}
             />
             <CategoryCard
               title="Induction"
               description="Mathematical and structural induction"
-              count={5}
+              count={categoryCounts['induction'] ?? 0}
             />
             <CategoryCard
               title="Lists"
               description="Proofs about list operations"
-              count={5}
+              count={categoryCounts['lists'] ?? 0}
             />
             <CategoryCard
               title="Arithmetic"
               description="Number theory and arithmetic proofs"
-              count={5}
+              count={categoryCounts['arithmetic'] ?? 0}
             />
             <CategoryCard
               title="Data Structures"
               slug="data-structures"
               description="Trees, BSTs, and recursive data types"
-              count={4}
+              count={categoryCounts['data-structures'] ?? 0}
             />
             <CategoryCard
               title="Relations"
               description="Ordering, equality, and relational proofs"
-              count={5}
+              count={categoryCounts['relations'] ?? 0}
             />
           </div>
         </div>

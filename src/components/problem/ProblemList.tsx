@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { CheckCircle2, Circle, Search, RefreshCw } from 'lucide-react';
 import type { ProblemSummary, Difficulty, Category } from '@/lib/problems/types';
+import { DIFFICULTY_COLORS, DIFFICULTY_ORDER } from '@/lib/ui-constants';
 import { PrerequisitesBadge } from './PrerequisitesBadge';
 
 interface ProblemListProps {
@@ -21,18 +22,6 @@ interface ProblemListProps {
   prereqCounts?: Record<string, number>;
   dueSlugs?: Set<string>;
 }
-
-const difficultyColors: Record<Difficulty, string> = {
-  easy: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  hard: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-};
-
-const difficultyOrder: Record<Difficulty, number> = {
-  easy: 1,
-  medium: 2,
-  hard: 3,
-};
 
 export function ProblemList({ problems, completedSlugs, prereqCounts = {}, dueSlugs = new Set() }: ProblemListProps) {
   const [search, setSearch] = useState('');
@@ -77,7 +66,7 @@ export function ProblemList({ problems, completedSlugs, prereqCounts = {}, dueSl
       })
       .sort((a, b) => {
         // Sort by difficulty, then by title
-        const diffDiff = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        const diffDiff = DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty];
         if (diffDiff !== 0) return diffDiff;
         return a.title.localeCompare(b.title);
       });
@@ -202,7 +191,7 @@ export function ProblemList({ problems, completedSlugs, prereqCounts = {}, dueSl
                     <Badge variant="outline" className="hidden sm:inline-flex">
                       {problem.category}
                     </Badge>
-                    <Badge className={difficultyColors[problem.difficulty]}>
+                    <Badge className={DIFFICULTY_COLORS[problem.difficulty]}>
                       {problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}
                     </Badge>
                   </div>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { safeStorage } from '@/lib/safe-storage';
 
 interface EditorState {
   code: string;
@@ -63,6 +64,7 @@ export const useEditorStore = create<EditorState>()(
     }),
     {
       name: 'leetmethods-editor',
+      storage: safeStorage,
       partialize: (state) => ({ savedCodes: state.savedCodes }),
     }
   )

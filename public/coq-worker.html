@@ -230,7 +230,7 @@ Qed.
               return;
             }
             mgr.goPrev(false);
-            await new Promise(function(resolve) { setTimeout(resolve, 200); });
+            await waitForProcessing(15000);
             parent.postMessage({ type: 'coq-result', id: id, ok: true }, PARENT_ORIGIN);
             break;
           }

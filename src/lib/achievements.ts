@@ -1,4 +1,4 @@
-import type { ProblemProgress, StreakData } from '@/store/progressStore';
+import type { ProblemProgress, StreakData } from '@/lib/types/progress';
 import type { ProblemSummary, Category } from '@/lib/problems/types';
 
 export interface Achievement {

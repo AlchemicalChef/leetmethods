@@ -1,49 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeStats, formatDuration } from './stats';
-import type { ProblemProgress, StreakData } from '@/store/progressStore';
-import type { ProblemSummary, Category, Difficulty } from '@/lib/problems/types';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function makeProblem(
-  slug: string,
-  category: Category,
-  difficulty: Difficulty
-): ProblemSummary {
-  return {
-    id: slug,
-    slug,
-    title: slug.replace(/-/g, ' '),
-    difficulty,
-    category,
-    tags: [],
-  };
-}
-
-function makeProgress(
-  slug: string,
-  completed: boolean,
-  opts: Partial<Omit<ProblemProgress, 'slug' | 'completed'>> = {}
-): ProblemProgress {
-  return {
-    slug,
-    completed,
-    completedAt: completed ? Date.now() : null,
-    attempts: 1,
-    hintsUsed: 0,
-    solveStartedAt: null,
-    solveDurationMs: null,
-    ...opts,
-  };
-}
-
-const NO_STREAK: StreakData = {
-  currentStreak: 0,
-  longestStreak: 0,
-  lastSolveDate: null,
-};
+import type { ProblemProgress, StreakData } from '@/lib/types/progress';
+import { makeProgress, makeProblem, NO_STREAK } from '@/test/factories';
 
 // ---------------------------------------------------------------------------
 // computeStats

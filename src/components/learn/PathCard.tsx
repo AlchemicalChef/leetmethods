@@ -7,19 +7,14 @@ import { ArrowRight } from 'lucide-react';
 import { useProgressStore } from '@/store/progressStore';
 import { computePathProgress } from '@/lib/paths/progress';
 import type { LearningPath } from '@/lib/paths/types';
+import { PATH_DIFFICULTY_COLORS } from '@/lib/ui-constants';
 
 interface PathCardProps {
   path: LearningPath;
 }
 
-const difficultyColors = {
-  beginner: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  intermediate: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  advanced: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-};
-
 export function PathCard({ path }: PathCardProps) {
-  const { progress } = useProgressStore();
+  const progress = useProgressStore((s) => s.progress);
   const pathProgress = computePathProgress(path, progress);
 
   const nextStep = pathProgress.nextStep !== null ? path.steps[pathProgress.nextStep] : null;
@@ -33,7 +28,7 @@ export function PathCard({ path }: PathCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h3 className="font-semibold">{path.title}</h3>
-              <Badge className={difficultyColors[path.difficulty]}>
+              <Badge className={PATH_DIFFICULTY_COLORS[path.difficulty]}>
                 {path.difficulty}
               </Badge>
             </div>

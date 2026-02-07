@@ -1,5 +1,3 @@
-import type { VerificationResult, CoqGoal, CoqMessage } from './types';
-
 // Known forbidden tactic patterns with specific regex handling
 const FORBIDDEN_TACTICS_PATTERNS: Record<string, RegExp> = {
   admit: /\badmit\b/,
@@ -55,26 +53,5 @@ export function isProofComplete(code: string): boolean {
   const stripped = stripCoqComments(code);
   const terminatorPattern = /\b(?:Qed|Defined)\s*\.\s*$/m;
   return terminatorPattern.test(stripped.trim());
-}
-
-export function createVerificationResult(
-  goals: CoqGoal[],
-  messages: CoqMessage[],
-  errors: string[],
-  code: string,
-  forbiddenTactics: string[]
-): VerificationResult {
-  const { hasForbidden, found } = checkForbiddenTactics(code, forbiddenTactics);
-  const isComplete = goals.length === 0 && errors.length === 0 && isProofComplete(code);
-
-  return {
-    success: isComplete && !hasForbidden,
-    goals,
-    errors,
-    messages,
-    hasForbiddenTactics: hasForbidden,
-    forbiddenTacticsFound: found,
-    isComplete: isComplete && !hasForbidden,
-  };
 }
 

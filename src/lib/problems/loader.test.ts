@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   getAllProblems,
-  getProblemBySlug,
   getProblemSummaries,
-  getProblemsByCategory,
-  getProblemsByDifficulty,
+  getAllProblemsSync,
 } from './loader';
 
 // ---------------------------------------------------------------------------
@@ -50,25 +48,15 @@ describe('getAllProblems', () => {
 });
 
 // ---------------------------------------------------------------------------
-// getProblemBySlug
+// getAllProblemsSync
 // ---------------------------------------------------------------------------
 
-describe('getProblemBySlug', () => {
-  it('returns the correct problem for a known slug', async () => {
-    const problem = await getProblemBySlug('modus-ponens');
-    expect(problem).not.toBeNull();
-    expect(problem!.slug).toBe('modus-ponens');
-    expect(problem!.category).toBe('logic');
-  });
-
-  it('returns null for an unknown slug', async () => {
-    const problem = await getProblemBySlug('non-existent-problem');
-    expect(problem).toBeNull();
-  });
-
-  it('returns null for an empty string', async () => {
-    const problem = await getProblemBySlug('');
-    expect(problem).toBeNull();
+describe('getAllProblemsSync', () => {
+  it('returns the same problems as getAllProblems', async () => {
+    const asyncProblems = await getAllProblems();
+    const syncProblems = getAllProblemsSync();
+    expect(syncProblems.length).toBe(asyncProblems.length);
+    expect(syncProblems.map((p) => p.slug).sort()).toEqual(asyncProblems.map((p) => p.slug).sort());
   });
 });
 
@@ -89,7 +77,7 @@ describe('getProblemSummaries', () => {
   it('does not include problem-detail fields like description or prelude', async () => {
     const summaries = await getProblemSummaries();
     for (const s of summaries) {
-      const obj = s as Record<string, unknown>;
+      const obj = s as unknown as Record<string, unknown>;
       expect(obj.description).toBeUndefined();
       expect(obj.prelude).toBeUndefined();
       expect(obj.template).toBeUndefined();
@@ -103,67 +91,5 @@ describe('getProblemSummaries', () => {
     const problems = await getAllProblems();
     const summaries = await getProblemSummaries();
     expect(summaries.length).toBe(problems.length);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getProblemsByCategory
-// ---------------------------------------------------------------------------
-
-describe('getProblemsByCategory', () => {
-  it('returns only logic problems for category "logic"', () => {
-    const logicProblems = getProblemsByCategory('logic');
-    expect(logicProblems.length).toBeGreaterThan(0);
-    for (const p of logicProblems) {
-      expect(p.category).toBe('logic');
-    }
-  });
-
-  it('returns only induction problems for category "induction"', () => {
-    const inductionProblems = getProblemsByCategory('induction');
-    expect(inductionProblems.length).toBeGreaterThan(0);
-    for (const p of inductionProblems) {
-      expect(p.category).toBe('induction');
-    }
-  });
-
-  it('returns an empty array for a non-existent category', () => {
-    const problems = getProblemsByCategory('nonexistent');
-    expect(problems).toEqual([]);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getProblemsByDifficulty
-// ---------------------------------------------------------------------------
-
-describe('getProblemsByDifficulty', () => {
-  it('returns only easy problems for difficulty "easy"', () => {
-    const easyProblems = getProblemsByDifficulty('easy');
-    expect(easyProblems.length).toBeGreaterThan(0);
-    for (const p of easyProblems) {
-      expect(p.difficulty).toBe('easy');
-    }
-  });
-
-  it('returns only hard problems for difficulty "hard"', () => {
-    const hardProblems = getProblemsByDifficulty('hard');
-    expect(hardProblems.length).toBeGreaterThan(0);
-    for (const p of hardProblems) {
-      expect(p.difficulty).toBe('hard');
-    }
-  });
-
-  it('returns an empty array for a non-existent difficulty', () => {
-    const problems = getProblemsByDifficulty('impossible');
-    expect(problems).toEqual([]);
-  });
-
-  it('all difficulties together cover all problems', async () => {
-    const all = await getAllProblems();
-    const easy = getProblemsByDifficulty('easy');
-    const medium = getProblemsByDifficulty('medium');
-    const hard = getProblemsByDifficulty('hard');
-    expect(easy.length + medium.length + hard.length).toBe(all.length);
   });
 });

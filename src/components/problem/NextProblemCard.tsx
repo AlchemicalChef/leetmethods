@@ -4,17 +4,12 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
-import type { ProblemSummary, Difficulty } from '@/lib/problems/types';
+import type { ProblemSummary } from '@/lib/problems/types';
+import { DIFFICULTY_COLORS } from '@/lib/ui-constants';
 
 interface NextProblemCardProps {
   problem: ProblemSummary;
 }
-
-const difficultyColors: Record<Difficulty, string> = {
-  easy: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  hard: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-};
 
 export function NextProblemCard({ problem }: NextProblemCardProps) {
   return (
@@ -23,7 +18,7 @@ export function NextProblemCard({ problem }: NextProblemCardProps) {
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Next:</span>
           <span className="text-sm">{problem.title}</span>
-          <Badge className={`text-xs ${difficultyColors[problem.difficulty]}`}>
+          <Badge className={`text-xs ${DIFFICULTY_COLORS[problem.difficulty]}`}>
             {problem.difficulty}
           </Badge>
         </div>

@@ -9,10 +9,11 @@ export interface CoqHypothesis {
   type: string;
 }
 
-// FIX #9: Unified CoqMessage type - include 'success' for consistency with store
+// Unified CoqMessage type — canonical definition for both lib and store
 export interface CoqMessage {
   type: 'info' | 'error' | 'warning' | 'notice' | 'success';
   content: string;
+  timestamp?: number; // Set by coqStore.addMessage; optional in lib context
 }
 
 export interface VerificationResult {
@@ -25,22 +26,4 @@ export interface VerificationResult {
   isComplete: boolean; // Qed successful with no remaining goals
 }
 
-export interface CoqDocument {
-  prelude: string;
-  userCode: string;
-}
-
 export type CoqWorkerStatus = 'idle' | 'loading' | 'ready' | 'busy' | 'error';
-
-export interface CoqWorkerMessage {
-  type: 'status' | 'goals' | 'message' | 'error' | 'complete' | 'verification';
-  payload: unknown;
-}
-
-export interface CoqCommand {
-  id: string;
-  type: 'init' | 'exec' | 'cancel' | 'verify';
-  code?: string;
-  document?: CoqDocument;
-  forbiddenTactics?: string[];
-}

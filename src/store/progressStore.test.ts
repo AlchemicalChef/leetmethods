@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { updateStreak, getDateString, useProgressStore } from './progressStore';
 import type { StreakData } from './progressStore';
+import { makeProgress } from '@/test/factories';
 
 // ---------------------------------------------------------------------------
 // getDateString
@@ -316,15 +317,7 @@ describe('useProgressStore - incrementAttempts', () => {
   it('increments existing entry', () => {
     useProgressStore.setState({
       progress: {
-        'two-sum': {
-          slug: 'two-sum',
-          completed: false,
-          completedAt: null,
-          attempts: 3,
-          hintsUsed: 1,
-          solveStartedAt: null,
-          solveDurationMs: null,
-        },
+        'two-sum': makeProgress('two-sum', false, { attempts: 3, hintsUsed: 1 }),
       },
       streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
     });
@@ -367,15 +360,7 @@ describe('useProgressStore - incrementHints', () => {
   it('increments existing', () => {
     useProgressStore.setState({
       progress: {
-        'two-sum': {
-          slug: 'two-sum',
-          completed: false,
-          completedAt: null,
-          attempts: 2,
-          hintsUsed: 1,
-          solveStartedAt: null,
-          solveDurationMs: null,
-        },
+        'two-sum': makeProgress('two-sum', false, { attempts: 2, hintsUsed: 1 }),
       },
       streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
     });
@@ -445,15 +430,7 @@ describe('useProgressStore - markCompleted', () => {
   it("doesn't re-increment attempts", () => {
     useProgressStore.setState({
       progress: {
-        'two-sum': {
-          slug: 'two-sum',
-          completed: false,
-          completedAt: null,
-          attempts: 5,
-          hintsUsed: 2,
-          solveStartedAt: null,
-          solveDurationMs: null,
-        },
+        'two-sum': makeProgress('two-sum', false, { attempts: 5, hintsUsed: 2 }),
       },
       streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
     });
@@ -501,15 +478,7 @@ describe('useProgressStore - startTimer', () => {
   it('no-op if completed', () => {
     useProgressStore.setState({
       progress: {
-        'two-sum': {
-          slug: 'two-sum',
-          completed: true,
-          completedAt: Date.now(),
-          attempts: 1,
-          hintsUsed: 0,
-          solveStartedAt: null,
-          solveDurationMs: 1000,
-        },
+        'two-sum': makeProgress('two-sum', true, { solveDurationMs: 1000 }),
       },
       streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
     });
@@ -548,15 +517,11 @@ describe('useProgressStore - stopTimer', () => {
     vi.setSystemTime(new Date('2024-01-15T12:00:00Z'));
     useProgressStore.setState({
       progress: {
-        'two-sum': {
-          slug: 'two-sum',
-          completed: false,
-          completedAt: null,
+        'two-sum': makeProgress('two-sum', false, {
           attempts: 0,
-          hintsUsed: 0,
           solveStartedAt: new Date('2024-01-15T12:00:00Z').getTime(),
           solveDurationMs: 2000,
-        },
+        }),
       },
       streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
     });
@@ -592,33 +557,9 @@ describe('useProgressStore - getCompletedCount / getCompletedSlugs', () => {
   it('counts completed entries', () => {
     useProgressStore.setState({
       progress: {
-        'problem-1': {
-          slug: 'problem-1',
-          completed: true,
-          completedAt: Date.now(),
-          attempts: 1,
-          hintsUsed: 0,
-          solveStartedAt: null,
-          solveDurationMs: 1000,
-        },
-        'problem-2': {
-          slug: 'problem-2',
-          completed: false,
-          completedAt: null,
-          attempts: 2,
-          hintsUsed: 1,
-          solveStartedAt: null,
-          solveDurationMs: null,
-        },
-        'problem-3': {
-          slug: 'problem-3',
-          completed: true,
-          completedAt: Date.now(),
-          attempts: 1,
-          hintsUsed: 0,
-          solveStartedAt: null,
-          solveDurationMs: 2000,
-        },
+        'problem-1': makeProgress('problem-1', true, { solveDurationMs: 1000 }),
+        'problem-2': makeProgress('problem-2', false, { attempts: 2, hintsUsed: 1 }),
+        'problem-3': makeProgress('problem-3', true, { solveDurationMs: 2000 }),
       },
       streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
     });
@@ -629,33 +570,9 @@ describe('useProgressStore - getCompletedCount / getCompletedSlugs', () => {
   it('returns slugs of completed entries', () => {
     useProgressStore.setState({
       progress: {
-        'problem-1': {
-          slug: 'problem-1',
-          completed: true,
-          completedAt: Date.now(),
-          attempts: 1,
-          hintsUsed: 0,
-          solveStartedAt: null,
-          solveDurationMs: 1000,
-        },
-        'problem-2': {
-          slug: 'problem-2',
-          completed: false,
-          completedAt: null,
-          attempts: 2,
-          hintsUsed: 1,
-          solveStartedAt: null,
-          solveDurationMs: null,
-        },
-        'problem-3': {
-          slug: 'problem-3',
-          completed: true,
-          completedAt: Date.now(),
-          attempts: 1,
-          hintsUsed: 0,
-          solveStartedAt: null,
-          solveDurationMs: 2000,
-        },
+        'problem-1': makeProgress('problem-1', true, { solveDurationMs: 1000 }),
+        'problem-2': makeProgress('problem-2', false, { attempts: 2, hintsUsed: 1 }),
+        'problem-3': makeProgress('problem-3', true, { solveDurationMs: 2000 }),
       },
       streakData: { currentStreak: 0, longestStreak: 0, lastSolveDate: null },
     });

@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useHydrated } from '@/hooks/useHydrated';
 import { ArrowLeft, ArrowRight, CheckCircle2, Lightbulb, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CoqEditor, GoalsPanel, EditorToolbar } from '@/components/editor';
-import { getCoqService, resetCoqService, setInitializing } from '@/lib/coq';
-import type { CoqService } from '@/lib/coq';
 import { useCoqStore } from '@/store/coqStore';
+import { useCoqSession } from '@/hooks/useCoqSession';
+import type { CoqGoal } from '@/lib/coq';
 import type { TutorialStep } from '@/lib/tutorial/tutorial-steps';
 import Link from 'next/link';
 
@@ -32,29 +33,53 @@ function storeStep(key: string, step: number): void {
 export function TutorialPage({ steps, title, storageKey, completionLink }: TutorialPageProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [code, setCode] = useState('');
-  const [executedUpTo, setExecutedUpTo] = useState(0);
   const [stepComplete, setStepComplete] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [coqLoading, setCoqLoading] = useState(false);
-  const [coqInitError, setCoqInitError] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const hydrated = useHydrated();
 
-  const { goals, setGoals, status, setStatus, messages, addMessage, reset: resetCoqStore } = useCoqStore();
+  const { goals, status, messages, reset: resetCoqStore } = useCoqStore();
 
-  const serviceRef = useRef<CoqService | null>(null);
   const codeRef = useRef(code);
-
   useEffect(() => {
     codeRef.current = code;
   }, [code]);
 
+  const step = steps[currentStep];
+
+  const {
+    serviceRef,
+    coqLoading,
+    coqInitError,
+    executedUpTo,
+    handleExecuteNext,
+    handleExecutePrev,
+    handleExecuteAll,
+    handleReset: baseHandleReset,
+    initializeCoqService,
+  } = useCoqSession(codeRef, {
+    prelude: step?.exercise.prelude ?? '',
+    onGoalsUpdate: useCallback((g: CoqGoal[]) => {
+      if (g.length === 0 && serviceRef.current && serviceRef.current.isProofStarted()) {
+        setStepComplete(true);
+      }
+    // serviceRef is a stable ref object -- safe to omit from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+    onAfterReset: useCallback(() => {
+      setCode(steps[currentStep]?.exercise.template ?? '');
+      setStepComplete(false);
+    // steps is a prop that doesn't change identity for a given tutorial page.
+    // currentStep is read via closure; the callback is re-created when currentStep changes
+    // due to the dep below, so the closure is always fresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentStep, steps]),
+  });
+
+  // Restore saved step on mount
   useEffect(() => {
-    setHydrated(true);
     setCurrentStep(getStoredStep(storageKey, steps.length - 1));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const step = steps[currentStep];
 
   // Initialize code when step changes
   useEffect(() => {
@@ -62,98 +87,19 @@ export function TutorialPage({ steps, title, storageKey, completionLink }: Tutor
     setCode(step.exercise.template);
     setStepComplete(false);
     setShowHint(false);
-    setExecutedUpTo(0);
     resetCoqStore();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
-  // Initialize Coq service
+  // Initialize Coq service once on mount
   useEffect(() => {
-    setCoqLoading(true);
-    setCoqInitError(null);
-    setInitializing(true);
-
-    const service = getCoqService({
-      onStatusChange: setStatus,
-      onGoalsUpdate: (g) => {
-        setGoals(g);
-        if (g.length === 0 && serviceRef.current && serviceRef.current.isProofStarted()) {
-          setStepComplete(true);
-        }
-      },
-      onMessage: (msg) => addMessage(msg.type, msg.content),
-      onPositionChange: (charOffset) => {
-        const preludeLen = (step?.exercise.prelude.length ?? 0) + 2;
-        setExecutedUpTo(Math.max(0, charOffset - preludeLen));
-      },
-      onReady: () => {
-        setStatus('ready');
-        setCoqLoading(false);
-        setInitializing(false);
-      },
-      onError: (error) => {
-        setCoqInitError(error);
-        setCoqLoading(false);
-        setInitializing(false);
-      },
-    });
-
-    service.initialize().then(() => {
-      serviceRef.current = service;
-      setCoqLoading(false);
-      setInitializing(false);
-    }).catch((error) => {
-      setCoqInitError(error instanceof Error ? error.message : 'Failed to initialize Coq');
-      setCoqLoading(false);
-      setInitializing(false);
-    });
-
-    return () => {
-      resetCoqService();
-    };
+    initializeCoqService();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleExecuteNext = useCallback(async () => {
-    if (!serviceRef.current || !step) return;
-    try {
-      serviceRef.current.setCode(step.exercise.prelude + '\n\n' + codeRef.current);
-      await serviceRef.current.executeNext();
-    } catch (error) {
-      addMessage('error', error instanceof Error ? error.message : 'Execution failed');
-    }
-  }, [step, addMessage]);
-
-  const handleExecutePrev = useCallback(async () => {
-    if (!serviceRef.current) return;
-    try {
-      await serviceRef.current.executePrev();
-    } catch (error) {
-      addMessage('error', error instanceof Error ? error.message : 'Undo failed');
-    }
-  }, [addMessage]);
-
-  const handleExecuteAll = useCallback(async () => {
-    if (!serviceRef.current || !step) return;
-    try {
-      serviceRef.current.setCode(step.exercise.prelude + '\n\n' + codeRef.current);
-      await serviceRef.current.executeAll();
-    } catch (error) {
-      addMessage('error', error instanceof Error ? error.message : 'Execution failed');
-    }
-  }, [step, addMessage]);
-
   const handleReset = useCallback(async () => {
-    if (!serviceRef.current || !step) return;
-    try {
-      await serviceRef.current.reset();
-      setCode(step.exercise.template);
-      setStepComplete(false);
-      setExecutedUpTo(0);
-    } catch (error) {
-      addMessage('error', error instanceof Error ? error.message : 'Reset failed');
-    }
-  }, [step, addMessage]);
+    await baseHandleReset();
+  }, [baseHandleReset]);
 
   const handleNextStep = useCallback(() => {
     if (currentStep < steps.length - 1) {

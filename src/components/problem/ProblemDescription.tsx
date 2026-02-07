@@ -7,8 +7,9 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronRight, Lightbulb, BookOpen, Eye } from 'lucide-react';
-import type { Problem, Difficulty } from '@/lib/problems/types';
+import type { Problem } from '@/lib/problems/types';
 import type { PrerequisiteStatus } from '@/lib/prerequisites';
+import { DIFFICULTY_COLORS } from '@/lib/ui-constants';
 import { PrerequisitesPanel } from './PrerequisitesPanel';
 
 interface ProblemDescriptionProps {
@@ -22,12 +23,6 @@ interface ProblemDescriptionProps {
   onDelete?: () => void;
   className?: string;
 }
-
-const difficultyColors: Record<Difficulty, string> = {
-  easy: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  hard: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-};
 
 export function ProblemDescription({
   problem,
@@ -49,7 +44,7 @@ export function ProblemDescription({
         <div>
           <h1 className="text-2xl font-bold mb-3">{problem.title}</h1>
           <div className="flex flex-wrap gap-2 items-center">
-            <Badge className={difficultyColors[problem.difficulty]}>
+            <Badge className={DIFFICULTY_COLORS[problem.difficulty]}>
               {problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}
             </Badge>
             <Badge variant="outline">{problem.category}</Badge>

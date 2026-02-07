@@ -22,7 +22,7 @@ export function createInitialSrs(): SrsData {
 
 export function deriveQuality(attempts: number, hintsUsed: number): number {
   if (attempts <= 1 && hintsUsed === 0) return 5;
-  if (attempts <= 3 || hintsUsed > 0) return 3;
+  if (attempts <= 3 && hintsUsed <= 1) return 3;
   return 1;
 }
 

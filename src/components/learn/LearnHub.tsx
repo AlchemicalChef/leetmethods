@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TacticReference } from './TacticReference';
 import { TacticPlayground } from './TacticPlayground';
@@ -9,15 +8,11 @@ import { ProgressOverview } from './ProgressOverview';
 import { LearningPathsSection } from './LearningPathsSection';
 import type { ProblemSummary } from '@/lib/problems/types';
 
-export function LearnHub() {
-  const [problems, setProblems] = useState<ProblemSummary[]>([]);
+interface LearnHubProps {
+  problems: ProblemSummary[];
+}
 
-  useEffect(() => {
-    fetch('/api/problems')
-      .then((res) => res.json())
-      .then(setProblems)
-      .catch(() => {});
-  }, []);
+export function LearnHub({ problems }: LearnHubProps) {
 
   return (
     <div className="space-y-8">

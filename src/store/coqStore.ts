@@ -1,14 +1,8 @@
 import { create } from 'zustand';
-import type { CoqGoal, CoqWorkerStatus } from '@/lib/coq/types';
+import type { CoqGoal, CoqWorkerStatus, CoqMessage } from '@/lib/coq/types';
 
-export type { CoqGoal };
+export type { CoqGoal, CoqMessage };
 export type CoqStatus = CoqWorkerStatus;
-
-export interface CoqMessage {
-  type: 'info' | 'error' | 'warning' | 'success' | 'notice';
-  content: string;
-  timestamp: number;
-}
 
 // FIX #11: Track proof state explicitly
 export type ProofState = 'not_started' | 'in_progress' | 'completed';
@@ -94,8 +88,3 @@ export const useCoqStore = create<CoqState>((set) => ({
       // Note: guidedMode is NOT reset - it's a user preference per session
     }),
 }));
-
-// Helper to check if proof is complete (for backward compatibility)
-export const isProofComplete = (state: CoqState): boolean => {
-  return state.proofState === 'completed';
-};

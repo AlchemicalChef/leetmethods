@@ -1,6 +1,5 @@
-import type { ProblemSummary, Difficulty } from '@/lib/problems/types';
-
-const difficultyOrder: Record<Difficulty, number> = { easy: 0, medium: 1, hard: 2 };
+import type { ProblemSummary } from '@/lib/problems/types';
+import { DIFFICULTY_ORDER } from '@/lib/ui-constants';
 
 export function getNextRecommendation(
   currentProblem: ProblemSummary,
@@ -30,9 +29,9 @@ export function getNextRecommendation(
     .filter(
       (p) =>
         p.category === currentProblem.category &&
-        difficultyOrder[p.difficulty] > difficultyOrder[currentProblem.difficulty]
+        DIFFICULTY_ORDER[p.difficulty] > DIFFICULTY_ORDER[currentProblem.difficulty]
     )
-    .sort((a, b) => difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty]);
+    .sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty]);
   if (sameCatHarder.length > 0) return sameCatHarder[0];
 
   // Priority 3: Any same category
@@ -44,5 +43,5 @@ export function getNextRecommendation(
   if (sameDiff.length > 0) return sameDiff[0];
 
   // Priority 5: Easiest unsolved
-  return unsolved.sort((a, b) => difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty])[0];
+  return unsolved.sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty])[0];
 }

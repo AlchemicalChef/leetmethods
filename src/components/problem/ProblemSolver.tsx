@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useHydrated } from '@/hooks/useHydrated';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronUp, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { CoqEditor, GoalsPanel, EditorToolbar } from '@/components/editor';
@@ -10,8 +11,7 @@ import { ResizableSplit } from '@/components/ui/resizable-split';
 import { useEditorStore } from '@/store/editorStore';
 import { useCoqStore } from '@/store/coqStore';
 import { useProgressStore } from '@/store/progressStore';
-import { getCoqService, resetCoqService, setInitializing } from '@/lib/coq';
-import type { CoqService } from '@/lib/coq';
+import { useCoqSession } from '@/hooks/useCoqSession';
 import { NextProblemCard } from './NextProblemCard';
 import { getNextRecommendation } from '@/lib/recommendations';
 import { useAchievementChecker } from '@/hooks/useAchievementChecker';
@@ -26,7 +26,7 @@ interface ProblemSolverProps {
 
 export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps) {
   const { code, loadCode, setCode, saveCode, resetCode } = useEditorStore();
-  const { goals, setGoals, status, setStatus, proofState, setProofState, addMessage, messages, reset: resetCoqStore, guidedMode, toggleGuidedMode } = useCoqStore();
+  const { goals, status, proofState, setProofState, addMessage, messages, reset: resetCoqStore, guidedMode, toggleGuidedMode } = useCoqStore();
   const { markCompleted, incrementAttempts, incrementHints, incrementReviewAttempts, incrementReviewHints, getProgress, startTimer, stopTimer, startReview, completeReview } = useProgressStore();
   const searchParams = useSearchParams();
 
@@ -35,17 +35,11 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const [hintsRevealed, setHintsRevealed] = useState(0);
   const [submissionResult, setSubmissionResult] = useState<'success' | 'failure' | null>(null);
   const [goalsExpanded, setGoalsExpanded] = useState(true);
-  const [coqLoading, setCoqLoading] = useState(false);
-  const [coqInitError, setCoqInitError] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [executedUpTo, setExecutedUpTo] = useState(0);
-  const [hydrated, setHydrated] = useState(false);
+  const hydrated = useHydrated();
   const isReviewMode = searchParams.get('review') === 'true';
 
-  // Use refs to capture values at execution time (avoid stale closures)
   const codeRef = useRef(code);
-  const serviceRef = useRef<CoqService | null>(null);
-  const preludeRef = useRef(problem.prelude);
   const submittingRef = useRef(false);
   const cursorPositionRef = useRef(0);
 
@@ -53,51 +47,38 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     codeRef.current = code;
   }, [code]);
 
-  useEffect(() => {
-    preludeRef.current = problem.prelude;
-  }, [problem.prelude]);
+  const {
+    serviceRef,
+    coqLoading,
+    coqInitError,
+    executedUpTo,
+    handleExecuteNext: baseExecuteNext,
+    handleExecutePrev,
+    handleExecuteAll: baseExecuteAll,
+    handleExecuteToPosition: baseExecuteToPosition,
+    handleReset: baseHandleReset,
+    initializeCoqService,
+  } = useCoqSession(codeRef, {
+    prelude: problem.prelude,
+    onBeforeExecute: useCallback(() => {
+      setProofState('in_progress');
+    }, [setProofState]),
+    onAfterReset: useCallback(() => {
+      resetCode(problem.template);
+      setSubmissionResult(null);
+      setProofState('not_started');
+    }, [problem.template, resetCode, setProofState]),
+  });
 
-  // Initialize Coq service
-  const initializeCoqService = useCallback(async () => {
-    setCoqLoading(true);
-    setCoqInitError(null);
-    setInitializing(true);
+  // Wrap execution handlers -- the hook handles onBeforeExecute internally,
+  // so these pass through directly. Kept as named locals so the JSX reads cleanly.
+  const handleExecuteNext = baseExecuteNext;
+  const handleExecuteAll = baseExecuteAll;
+  const handleExecuteToPosition = baseExecuteToPosition;
 
-    try {
-      const service = getCoqService({
-        onStatusChange: setStatus,
-        onGoalsUpdate: setGoals,
-        onMessage: (msg) => addMessage(msg.type, msg.content),
-        onPositionChange: (charOffset) => {
-          // Subtract prelude length (prelude + \n\n) to get editor-relative offset
-          // Use ref to always get the current problem's prelude length
-          const preludeLen = preludeRef.current.length + 2;
-          setExecutedUpTo(Math.max(0, charOffset - preludeLen));
-        },
-        onReady: () => {
-          setStatus('ready');
-          setCoqLoading(false);
-          setInitializing(false);
-        },
-        onError: (error) => {
-          setCoqInitError(error);
-          setCoqLoading(false);
-          setInitializing(false);
-        },
-      });
-
-      await service.initialize();
-      serviceRef.current = service;
-      setCoqLoading(false);
-      setInitializing(false);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to initialize Coq';
-      setCoqInitError(errorMsg);
-      setCoqLoading(false);
-      setInitializing(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setStatus, setGoals, addMessage]);
+  const handleReset = useCallback(async () => {
+    await baseHandleReset();
+  }, [baseHandleReset]);
 
   // Initialize editor with problem template
   useEffect(() => {
@@ -122,7 +103,6 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
 
     return () => {
       stopTimer(problem.slug);
-      resetCoqService();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problem.slug, problem.template]);
@@ -134,81 +114,19 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     [setCode]
   );
 
-  const handleExecuteNext = useCallback(async () => {
-    if (!serviceRef.current) return;
-    try {
-      const currentCode = codeRef.current;
-      serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
-      setProofState('in_progress');
-      await serviceRef.current.executeNext();
-    } catch (error) {
-      console.error('[ProblemSolver] executeNext failed:', error);
-      addMessage('error', error instanceof Error ? error.message : 'Execution failed');
-    }
-  }, [problem.prelude, setProofState, addMessage]);
-
-  const handleExecutePrev = useCallback(async () => {
-    if (!serviceRef.current) return;
-    try {
-      await serviceRef.current.executePrev();
-    } catch (error) {
-      console.error('[ProblemSolver] executePrev failed:', error);
-      addMessage('error', error instanceof Error ? error.message : 'Undo failed');
-    }
-  }, [addMessage]);
-
   const handleCursorActivity = useCallback((offset: number) => {
     cursorPositionRef.current = offset;
   }, []);
-
-  const handleExecuteToPosition = useCallback(async (charOffset: number) => {
-    if (!serviceRef.current) return;
-    try {
-      const currentCode = codeRef.current;
-      serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
-      setProofState('in_progress');
-      const preludeLen = problem.prelude.length + 2;
-      await serviceRef.current.executeToPosition(charOffset + preludeLen);
-    } catch (error) {
-      console.error('[ProblemSolver] executeToPosition failed:', error);
-      addMessage('error', error instanceof Error ? error.message : 'Execution failed');
-    }
-  }, [problem.prelude, setProofState, addMessage]);
 
   const handleExecuteToCursor = useCallback(() => {
     handleExecuteToPosition(cursorPositionRef.current);
   }, [handleExecuteToPosition]);
 
-  const handleExecuteAll = useCallback(async () => {
-    if (!serviceRef.current) return;
-    try {
-      const currentCode = codeRef.current;
-      serviceRef.current.setCode(problem.prelude + '\n\n' + currentCode);
-      setProofState('in_progress');
-      await serviceRef.current.executeAll();
-    } catch (error) {
-      console.error('[ProblemSolver] executeAll failed:', error);
-      addMessage('error', error instanceof Error ? error.message : 'Execution failed');
-    }
-  }, [problem.prelude, setProofState, addMessage]);
-
-  const handleReset = useCallback(async () => {
-    if (!serviceRef.current) return;
-    try {
-      await serviceRef.current.reset();
-      resetCode(problem.template);
-      setSubmissionResult(null);
-      setProofState('not_started');
-    } catch (error) {
-      console.error('[ProblemSolver] reset failed:', error);
-      addMessage('error', error instanceof Error ? error.message : 'Reset failed');
-    }
-  }, [problem.template, resetCode, setProofState, addMessage]);
-
   const handleSubmit = useCallback(async () => {
     if (!serviceRef.current || submittingRef.current) return;
     submittingRef.current = true;
     setSubmissionResult(null);
+    setProofState('in_progress');
 
     try {
       if (isReviewMode) {
@@ -265,7 +183,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     } finally {
       submittingRef.current = false;
     }
-  }, [problem, saveCode, markCompleted, incrementAttempts, incrementReviewAttempts, isReviewMode, completeReview, checkAndUnlock, addMessage, setProofState]);
+  }, [problem, saveCode, markCompleted, incrementAttempts, incrementReviewAttempts, isReviewMode, completeReview, checkAndUnlock, addMessage, setProofState, serviceRef]);
 
   const handleRevealHint = useCallback(() => {
     if (hintsRevealed < problem.hints.length) {
@@ -277,11 +195,6 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
       }
     }
   }, [hintsRevealed, problem.hints.length, problem.slug, isReviewMode, incrementHints, incrementReviewHints]);
-
-  // Wait for client hydration before reading persisted store values
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
 
   // Global ? key listener for shortcuts help
   useEffect(() => {
@@ -307,8 +220,16 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     () => Object.values(progressMap).filter((p) => p.completed).map((p) => p.slug),
     [progressMap]
   );
+  const getDueReviews = useProgressStore((s) => s.getDueReviews);
+  const dueSlugs = useMemo(() => {
+    try {
+      return getDueReviews().map((r) => r.slug);
+    } catch {
+      return [];
+    }
+  }, [getDueReviews]);
   const nextProblem = isComplete && allProblems.length > 0
-    ? getNextRecommendation(problem, allProblems, completedSlugs)
+    ? getNextRecommendation(problem, allProblems, completedSlugs, dueSlugs)
     : null;
 
   const guidedSuggestions = useMemo(() => {

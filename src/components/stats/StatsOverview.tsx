@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, Target, Flame, Clock } from 'lucide-react';
 import { useProgressStore } from '@/store/progressStore';
 import { computeStats, formatDuration } from '@/lib/stats';
-import type { ProblemSummary, Category } from '@/lib/problems/types';
+import type { ProblemSummary } from '@/lib/problems/types';
+import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/lib/ui-constants';
 import { AchievementGrid } from '@/components/achievements/AchievementGrid';
 import { ReviewSection } from '@/components/stats/ReviewSection';
 
@@ -14,26 +15,9 @@ interface StatsOverviewProps {
   problems: ProblemSummary[];
 }
 
-const categoryLabels: Record<Category, string> = {
-  logic: 'Logic',
-  induction: 'Induction',
-  lists: 'Lists',
-  arithmetic: 'Arithmetic',
-  'data-structures': 'Data Structures',
-  relations: 'Relations',
-};
-
-const categoryColors: Record<Category, string> = {
-  logic: 'bg-blue-500',
-  induction: 'bg-purple-500',
-  lists: 'bg-emerald-500',
-  arithmetic: 'bg-orange-500',
-  'data-structures': 'bg-pink-500',
-  relations: 'bg-cyan-500',
-};
-
 export function StatsOverview({ problems }: StatsOverviewProps) {
-  const { progress, streakData } = useProgressStore();
+  const progress = useProgressStore((s) => s.progress);
+  const streakData = useProgressStore((s) => s.streakData);
   const stats = useMemo(
     () => computeStats(progress, problems, streakData),
     [progress, problems, streakData]
@@ -73,14 +57,14 @@ export function StatsOverview({ problems }: StatsOverviewProps) {
           {stats.categoryStats.map((cat) => (
             <div key={cat.category}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium">{categoryLabels[cat.category]}</span>
+                <span className="text-sm font-medium">{CATEGORY_LABELS[cat.category]}</span>
                 <span className="text-sm text-muted-foreground">
                   {cat.solved}/{cat.total}
                 </span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${categoryColors[cat.category]}`}
+                  className={`h-full rounded-full transition-all duration-500 ${CATEGORY_COLORS[cat.category]}`}
                   style={{ width: `${cat.percent}%` }}
                 />
               </div>

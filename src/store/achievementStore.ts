@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { safeStorage } from '@/lib/safe-storage';
 
 interface AchievementState {
   unlockedAchievements: Record<string, number>; // id -> unlockedAt timestamp
@@ -45,6 +46,7 @@ export const useAchievementStore = create<AchievementState>()(
     }),
     {
       name: 'leetmethods-achievements',
+      storage: safeStorage,
       partialize: (state) => ({
         unlockedAchievements: state.unlockedAchievements,
       }),

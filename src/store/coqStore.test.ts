@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useCoqStore, isProofComplete } from './coqStore';
+import { useCoqStore } from './coqStore';
 import type { CoqGoal } from '@/lib/coq/types';
 
 // ---------------------------------------------------------------------------
@@ -182,25 +182,25 @@ describe('coqStore', () => {
 });
 
 // ---------------------------------------------------------------------------
-// isProofComplete helper
+// proofState direct checks
 // ---------------------------------------------------------------------------
 
-describe('isProofComplete', () => {
+describe('proofState values', () => {
   beforeEach(() => {
     useCoqStore.getState().reset();
   });
 
-  it('returns true when proofState is completed', () => {
+  it('is completed after setProofState("completed")', () => {
     useCoqStore.getState().setProofState('completed');
-    expect(isProofComplete(useCoqStore.getState())).toBe(true);
+    expect(useCoqStore.getState().proofState).toBe('completed');
   });
 
-  it('returns false when proofState is not_started', () => {
-    expect(isProofComplete(useCoqStore.getState())).toBe(false);
+  it('is not_started initially', () => {
+    expect(useCoqStore.getState().proofState).toBe('not_started');
   });
 
-  it('returns false when proofState is in_progress', () => {
+  it('is in_progress after setProofState("in_progress")', () => {
     useCoqStore.getState().setProofState('in_progress');
-    expect(isProofComplete(useCoqStore.getState())).toBe(false);
+    expect(useCoqStore.getState().proofState).toBe('in_progress');
   });
 });

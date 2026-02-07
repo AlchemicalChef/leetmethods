@@ -62,7 +62,14 @@ export class CoqService {
 
   async initialize(): Promise<void> {
     if (this.initPromise) {
-      return this.initPromise;
+      await this.initPromise;
+      // Re-notify callbacks — the consumer may have been remounted
+      // (e.g. navigated away and back) and needs the ready signal.
+      if (this.iframe) {
+        this.setStatus('ready');
+        this.callbacks.onReady?.();
+      }
+      return;
     }
 
     this.initPromise = this.doInitialize();
@@ -445,14 +452,23 @@ export class CoqService {
 
     const currentCount = this.executedStatements.length;
 
-    if (targetIndex > currentCount) {
-      for (let i = currentCount; i < targetIndex; i++) {
-        await this.executeNext();
+    try {
+      if (targetIndex > currentCount) {
+        for (let i = currentCount; i < targetIndex; i++) {
+          await this.executeNext();
+        }
+      } else if (targetIndex < currentCount) {
+        for (let i = currentCount; i > targetIndex; i--) {
+          await this.executePrev();
+        }
       }
-    } else if (targetIndex < currentCount) {
-      for (let i = currentCount; i > targetIndex; i--) {
-        await this.executePrev();
+    } catch (error) {
+      // executeNext/executePrev set status to 'error' before throwing;
+      // recover to 'ready' so the user can continue stepping from where we stopped
+      if (this.getStatus() !== 'ready') {
+        this.setStatus('ready');
       }
+      throw error;
     }
   }
 
@@ -544,6 +560,10 @@ export class CoqService {
         isComplete,
       };
     } catch (error) {
+      // Recover service to ready state so subsequent actions work
+      if (this.status === 'error' || this.status === 'busy') {
+        this.setStatus('ready');
+      }
       return {
         success: false,
         goals: [],
@@ -620,6 +640,19 @@ export function resetCoqService(): void {
   }
   serviceInstance?.destroy();
   serviceInstance = null;
+}
+
+/**
+ * Soft reset: clears Coq execution state without destroying the iframe/singleton.
+ * Use this on component unmount to preserve the expensive iframe across navigations.
+ */
+export async function softResetCoqService(): Promise<void> {
+  if (isInitializing || !serviceInstance) return;
+  try {
+    await serviceInstance.reset();
+  } catch {
+    // If soft reset fails, the service remains usable — next initialize() will handle it
+  }
 }
 
 export function setInitializing(value: boolean): void {
