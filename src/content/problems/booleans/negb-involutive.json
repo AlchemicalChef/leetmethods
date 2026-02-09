@@ -1,0 +1,17 @@
+{
+  "id": "32",
+  "slug": "negb-involutive",
+  "title": "Boolean Negation is Involutive",
+  "difficulty": "easy",
+  "category": "booleans",
+  "tags": ["booleans", "case analysis"],
+  "description": "Prove that negating a boolean value twice gives back the original value.\n\n**Goal:** `forall b : bool, negb (negb b) = b`\n\nThis is a classic first proof about booleans. Since `bool` has only two constructors (`true` and `false`), you can prove this by checking both cases.",
+  "hints": [
+    "Use `destruct b` to split into the `true` and `false` cases",
+    "After case splitting, `simpl` or `reflexivity` should close each goal"
+  ],
+  "prelude": "(* No imports needed — bool, negb are in Coq's prelude *)",
+  "template": "Theorem negb_involutive : forall b : bool, negb (negb b) = b.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem negb_involutive : forall b : bool, negb (negb b) = b.\nProof.\n  intro b.\n  destruct b.\n  - simpl. reflexivity.\n  - simpl. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

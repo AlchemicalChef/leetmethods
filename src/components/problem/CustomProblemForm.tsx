@@ -173,6 +173,7 @@ export function CustomProblemForm({ initialData, onSave, onCancel, isEditing = f
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="logic">Logic</SelectItem>
+                  <SelectItem value="booleans">Booleans</SelectItem>
                   <SelectItem value="induction">Induction</SelectItem>
                   <SelectItem value="lists">Lists</SelectItem>
                   <SelectItem value="arithmetic">Arithmetic</SelectItem>

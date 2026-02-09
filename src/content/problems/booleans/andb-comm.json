@@ -1,0 +1,18 @@
+{
+  "id": "33",
+  "slug": "andb-comm",
+  "title": "Boolean AND is Commutative",
+  "difficulty": "easy",
+  "category": "booleans",
+  "tags": ["booleans", "case analysis", "commutativity"],
+  "description": "Prove that boolean AND (`andb`) is commutative: the order of arguments does not matter.\n\n**Goal:** `forall a b : bool, andb a b = andb b a`\n\nSince `bool` is a finite type with two values, you can prove this by exhaustive case analysis on both arguments.",
+  "hints": [
+    "Use `destruct a` to case-split on the first boolean",
+    "Then use `destruct b` to case-split on the second boolean",
+    "Each of the four cases should simplify to a reflexivity proof"
+  ],
+  "prelude": "(* No imports needed — bool, andb are in Coq's prelude *)",
+  "template": "Theorem andb_comm : forall a b : bool, andb a b = andb b a.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem andb_comm : forall a b : bool, andb a b = andb b a.\nProof.\n  intros a b.\n  destruct a; destruct b; reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

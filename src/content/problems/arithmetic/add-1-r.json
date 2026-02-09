@@ -1,0 +1,18 @@
+{
+  "id": "45",
+  "slug": "add-1-r",
+  "title": "Add One Right is Successor",
+  "difficulty": "easy",
+  "category": "arithmetic",
+  "tags": ["natural numbers", "induction", "addition"],
+  "description": "Prove that adding 1 to the right of a natural number is the same as taking its successor.\n\n**Goal:** `forall n : nat, n + 1 = S n`\n\nSince addition is defined by recursion on the left argument, `n + 1` does not simplify directly when `n` is a variable. You need induction.",
+  "hints": [
+    "Perform `induction` on `n`",
+    "The base case `0 + 1 = S 0` simplifies directly",
+    "In the inductive case, `simpl` reduces `S n' + 1` to `S (n' + 1)`, then apply the induction hypothesis"
+  ],
+  "prelude": "(* No imports needed — nat and + are in Coq's prelude *)",
+  "template": "Theorem add_1_r : forall n : nat, n + 1 = S n.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem add_1_r : forall n : nat, n + 1 = S n.\nProof.\n  intro n.\n  induction n as [| n' IH].\n  - simpl. reflexivity.\n  - simpl. rewrite IH. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

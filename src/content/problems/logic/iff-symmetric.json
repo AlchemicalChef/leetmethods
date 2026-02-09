@@ -1,0 +1,17 @@
+{
+  "id": "38",
+  "slug": "iff-symmetric",
+  "title": "Iff is Symmetric",
+  "difficulty": "easy",
+  "category": "logic",
+  "tags": ["iff", "basic"],
+  "description": "Prove that logical equivalence (`<->`) is symmetric: if `P <-> Q` then `Q <-> P`.\n\n**Goal:** `forall P Q : Prop, (P <-> Q) -> (Q <-> P)`\n\nRecall that `P <-> Q` is defined as `(P -> Q) /\\ (Q -> P)`. You need to decompose the hypothesis and rebuild the equivalence with the directions swapped.",
+  "hints": [
+    "Use `intros P Q H` then `destruct H as [HPQ HQP]` to get both directions, or use the pattern `intros P Q [HPQ HQP]`",
+    "Use `split` to prove each direction of the new iff separately — each is already one of your hypotheses"
+  ],
+  "prelude": "(* No imports needed for this basic logic proof *)",
+  "template": "Theorem iff_symmetric : forall P Q : Prop, (P <-> Q) -> (Q <-> P).\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem iff_symmetric : forall P Q : Prop, (P <-> Q) -> (Q <-> P).\nProof.\n  intros P Q [HPQ HQP].\n  split.\n  - exact HQP.\n  - exact HPQ.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "42",
+  "slug": "list-rev-length",
+  "title": "Reverse Preserves Length",
+  "difficulty": "hard",
+  "category": "lists",
+  "tags": ["lists", "reverse", "length", "induction"],
+  "description": "Prove that reversing a list does not change its length.\n\n**Goal:** `forall (A : Type) (l : list A), length (rev l) = length l`\n\nThis proof requires induction on the list and uses two helper lemmas provided in the prelude: `length_app` (length distributes over append) and `n_plus_1` (n + 1 = S n).",
+  "hints": [
+    "Perform induction on `l`",
+    "The base case simplifies directly",
+    "In the inductive case, `rev (x :: l') = rev l' ++ [x]`. Use `rewrite length_app` to split the length across the append",
+    "After simplification and applying the induction hypothesis, use `n_plus_1` to finish"
+  ],
+  "prelude": "Require Import List.\nImport ListNotations.\n\n(* Helper: length distributes over append *)\nLemma length_app : forall (A : Type) (l1 l2 : list A),\n  length (l1 ++ l2) = length l1 + length l2.\nProof.\n  intros A l1 l2.\n  induction l1 as [| x l1' IH].\n  - simpl. reflexivity.\n  - simpl. rewrite IH. reflexivity.\nQed.\n\n(* Helper: n + 1 = S n *)\nLemma n_plus_1 : forall n : nat, n + 1 = S n.\nProof.\n  intro n. induction n as [| n' IH].\n  - simpl. reflexivity.\n  - simpl. rewrite IH. reflexivity.\nQed.",
+  "template": "Theorem rev_length : forall (A : Type) (l : list A), length (rev l) = length l.\nProof.\n  (* Your proof here *)\n  (* Hint: Use length_app and n_plus_1 from the prelude *)\nAdmitted.",
+  "solution": "Theorem rev_length : forall (A : Type) (l : list A), length (rev l) = length l.\nProof.\n  intros A l.\n  induction l as [| x l' IH].\n  - simpl. reflexivity.\n  - simpl. rewrite length_app. simpl. rewrite IH.\n    apply n_plus_1.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

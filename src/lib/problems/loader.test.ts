@@ -23,7 +23,7 @@ describe('getAllProblems', () => {
       expect(p.slug).toBeTruthy();
       expect(p.title).toBeTruthy();
       expect(['easy', 'medium', 'hard']).toContain(p.difficulty);
-      expect(['logic', 'induction', 'lists', 'arithmetic', 'data-structures', 'relations']).toContain(p.category);
+      expect(['logic', 'induction', 'lists', 'arithmetic', 'data-structures', 'relations', 'booleans']).toContain(p.category);
       expect(Array.isArray(p.tags)).toBe(true);
       expect(typeof p.description).toBe('string');
       expect(Array.isArray(p.hints)).toBe(true);

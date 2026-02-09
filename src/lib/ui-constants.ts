@@ -21,6 +21,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   arithmetic: 'Arithmetic',
   'data-structures': 'Data Structures',
   relations: 'Relations',
+  booleans: 'Booleans',
 };
 
 export const CATEGORY_COLORS: Record<Category, string> = {
@@ -30,10 +31,12 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   arithmetic: 'bg-orange-500',
   'data-structures': 'bg-pink-500',
   relations: 'bg-cyan-500',
+  booleans: 'bg-amber-500',
 };
 
 export const CATEGORY_ORDER: Category[] = [
   'logic',
+  'booleans',
   'induction',
   'lists',
   'arithmetic',

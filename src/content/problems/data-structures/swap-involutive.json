@@ -1,0 +1,17 @@
+{
+  "id": "43",
+  "slug": "swap-involutive",
+  "title": "Pair Swap is Involutive",
+  "difficulty": "easy",
+  "category": "data-structures",
+  "tags": ["pairs", "case analysis"],
+  "description": "Prove that swapping a pair twice gives back the original pair.\n\n**Goal:** `forall (A B : Type) (p : A * B), swap_pair (swap_pair p) = p`\n\nThe `swap_pair` function exchanges the two components of a pair. This proof introduces working with product types and `destruct` on pairs.",
+  "hints": [
+    "Use `destruct p as [a b]` to decompose the pair into its two components",
+    "After destructing, `simpl` will unfold both applications of `swap_pair`, and the result is immediate"
+  ],
+  "prelude": "Definition swap_pair {A B : Type} (p : A * B) : B * A :=\n  match p with\n  | (a, b) => (b, a)\n  end.",
+  "template": "Theorem swap_pair_involutive : forall (A B : Type) (p : A * B),\n  swap_pair (swap_pair p) = p.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem swap_pair_involutive : forall (A B : Type) (p : A * B),\n  swap_pair (swap_pair p) = p.\nProof.\n  intros A B p.\n  destruct p as [a b].\n  simpl. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

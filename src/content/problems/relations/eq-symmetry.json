@@ -1,0 +1,18 @@
+{
+  "id": "44",
+  "slug": "eq-symmetry",
+  "title": "Equality is Symmetric",
+  "difficulty": "easy",
+  "category": "relations",
+  "tags": ["equality", "rewrite"],
+  "description": "Prove that equality is symmetric: if `x = y` then `y = x`.\n\n**Goal:** `forall (A : Type) (x y : A), x = y -> y = x`\n\nThis is one of the fundamental properties of equality. In Coq, you can prove it using `rewrite` to substitute equals for equals.",
+  "hints": [
+    "Use `intros` to introduce all variables and the equality hypothesis `H`",
+    "Use `rewrite H` to replace `x` with `y` (or `rewrite <- H` to go the other way) in the goal",
+    "After rewriting, the goal becomes `y = y` or `x = x`, which follows by `reflexivity`"
+  ],
+  "prelude": "(* No imports needed — equality is built into Coq *)",
+  "template": "Theorem eq_symmetry : forall (A : Type) (x y : A), x = y -> y = x.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem eq_symmetry : forall (A : Type) (x y : A), x = y -> y = x.\nProof.\n  intros A x y H.\n  rewrite H.\n  reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

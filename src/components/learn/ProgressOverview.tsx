@@ -9,6 +9,7 @@ interface ProgressOverviewProps {
 
 const categoryLabels: Record<Category, string> = {
   logic: 'Logic',
+  booleans: 'Booleans',
   induction: 'Induction',
   lists: 'Lists',
   arithmetic: 'Arithmetic',

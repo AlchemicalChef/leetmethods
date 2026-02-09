@@ -1,0 +1,18 @@
+{
+  "id": "40",
+  "slug": "mul-1-r",
+  "title": "Multiply by One (Right)",
+  "difficulty": "easy",
+  "category": "induction",
+  "tags": ["natural numbers", "induction", "multiplication"],
+  "description": "Prove that multiplying any natural number by 1 gives back the same number.\n\n**Goal:** `forall n : nat, n * 1 = n`\n\nThis is not as trivial as it looks! Coq's `*` is defined by recursion on the left argument, so `n * 1` doesn't simplify directly. You need induction.",
+  "hints": [
+    "Perform `induction` on `n`",
+    "The base case `0 * 1 = 0` simplifies directly",
+    "In the inductive case, `simpl` reduces `S n' * 1` to `S (n' * 1)`, then apply the induction hypothesis"
+  ],
+  "prelude": "(* No imports needed — nat and * are in Coq's prelude *)",
+  "template": "Theorem mul_1_r : forall n : nat, n * 1 = n.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem mul_1_r : forall n : nat, n * 1 = n.\nProof.\n  intro n.\n  induction n as [| n' IH].\n  - simpl. reflexivity.\n  - simpl. rewrite IH. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

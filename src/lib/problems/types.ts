@@ -1,5 +1,5 @@
 export type Difficulty = 'easy' | 'medium' | 'hard';
-export type Category = 'logic' | 'induction' | 'lists' | 'data-structures' | 'relations' | 'arithmetic';
+export type Category = 'logic' | 'induction' | 'lists' | 'data-structures' | 'relations' | 'arithmetic' | 'booleans';
 
 export interface Problem {
   id: string;

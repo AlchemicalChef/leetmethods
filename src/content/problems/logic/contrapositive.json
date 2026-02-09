@@ -1,0 +1,18 @@
+{
+  "id": "37",
+  "slug": "contrapositive",
+  "title": "Contrapositive",
+  "difficulty": "medium",
+  "category": "logic",
+  "tags": ["implication", "negation", "contrapositive"],
+  "description": "Prove the contrapositive law: if `P` implies `Q`, then `~Q` implies `~P`.\n\n**Goal:** `forall P Q : Prop, (P -> Q) -> ~Q -> ~P`\n\nThe contrapositive is one of the most important logical principles. Remember that `~P` unfolds to `P -> False`, so after introducing all hypotheses you need to derive `False`.",
+  "hints": [
+    "Use `intros` to introduce `P`, `Q`, `HPQ : P -> Q`, `HnQ : ~Q`, and `HP : P`",
+    "Apply `HnQ` — this reduces the goal from `False` to `Q`",
+    "Then apply `HPQ` to reduce `Q` to `P`, which you already have"
+  ],
+  "prelude": "(* No imports needed for this basic logic proof *)",
+  "template": "Theorem contrapositive : forall P Q : Prop, (P -> Q) -> ~Q -> ~P.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem contrapositive : forall P Q : Prop, (P -> Q) -> ~Q -> ~P.\nProof.\n  intros P Q HPQ HnQ HP.\n  apply HnQ.\n  apply HPQ.\n  exact HP.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

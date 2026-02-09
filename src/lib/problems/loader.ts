@@ -35,6 +35,34 @@ import treeLeafCountProblem from '@/content/problems/data-structures/tree-leaf-c
 import leAntisymProblem from '@/content/problems/relations/le-antisym.json';
 import eqSymTransProblem from '@/content/problems/relations/eq-sym-trans.json';
 
+// Booleans
+import negbInvolutiveProblem from '@/content/problems/booleans/negb-involutive.json';
+import andbCommProblem from '@/content/problems/booleans/andb-comm.json';
+import andbTrueIffProblem from '@/content/problems/booleans/andb-true-iff.json';
+import orbTrueIffProblem from '@/content/problems/booleans/orb-true-iff.json';
+
+// More logic
+import notNotIntroProblem from '@/content/problems/logic/not-not-intro.json';
+import contrapositiveProblem from '@/content/problems/logic/contrapositive.json';
+import iffSymmetricProblem from '@/content/problems/logic/iff-symmetric.json';
+
+// More induction
+import plusNSmProblem from '@/content/problems/induction/plus-n-sm.json';
+import mul1RProblem from '@/content/problems/induction/mul-1-r.json';
+
+// More lists
+import listAppAssocProblem from '@/content/problems/lists/list-app-assoc.json';
+import listRevLengthProblem from '@/content/problems/lists/list-rev-length.json';
+
+// More data structures
+import swapInvolutiveProblem from '@/content/problems/data-structures/swap-involutive.json';
+
+// More relations
+import eqSymmetryProblem from '@/content/problems/relations/eq-symmetry.json';
+
+// More arithmetic
+import add1RProblem from '@/content/problems/arithmetic/add-1-r.json';
+
 const problems: Problem[] = [
   modusPonensProblem as Problem,
   doubleNegationProblem as Problem,
@@ -67,6 +95,27 @@ const problems: Problem[] = [
   treeLeafCountProblem as Problem,
   leAntisymProblem as Problem,
   eqSymTransProblem as Problem,
+  // Booleans
+  negbInvolutiveProblem as Problem,
+  andbCommProblem as Problem,
+  andbTrueIffProblem as Problem,
+  orbTrueIffProblem as Problem,
+  // More logic
+  notNotIntroProblem as Problem,
+  contrapositiveProblem as Problem,
+  iffSymmetricProblem as Problem,
+  // More induction
+  plusNSmProblem as Problem,
+  mul1RProblem as Problem,
+  // More lists
+  listAppAssocProblem as Problem,
+  listRevLengthProblem as Problem,
+  // More data structures
+  swapInvolutiveProblem as Problem,
+  // More relations
+  eqSymmetryProblem as Problem,
+  // More arithmetic
+  add1RProblem as Problem,
 ];
 
 export async function getAllProblems(): Promise<Problem[]> {

@@ -1,0 +1,18 @@
+{
+  "id": "41",
+  "slug": "list-app-assoc",
+  "title": "Append is Associative",
+  "difficulty": "medium",
+  "category": "lists",
+  "tags": ["lists", "append", "induction", "associativity"],
+  "description": "Prove that list append (`++`) is associative: the grouping of three appended lists does not matter.\n\n**Goal:** `forall (A : Type) (l1 l2 l3 : list A), (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3)`\n\nThis is one of the most important properties of lists, used as a lemma in many other proofs.",
+  "hints": [
+    "Perform induction on `l1`",
+    "The base case: `([] ++ l2) ++ l3 = [] ++ (l2 ++ l3)` simplifies directly",
+    "In the inductive case, `simpl` reduces the `::` head, then use `rewrite` with the induction hypothesis"
+  ],
+  "prelude": "Require Import List.\nImport ListNotations.",
+  "template": "Theorem app_assoc_manual : forall (A : Type) (l1 l2 l3 : list A),\n  (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3).\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem app_assoc_manual : forall (A : Type) (l1 l2 l3 : list A),\n  (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3).\nProof.\n  intros A l1 l2 l3.\n  induction l1 as [| x l1' IH].\n  - simpl. reflexivity.\n  - simpl. rewrite IH. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}

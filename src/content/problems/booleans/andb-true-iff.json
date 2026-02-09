@@ -1,0 +1,18 @@
+{
+  "id": "34",
+  "slug": "andb-true-iff",
+  "title": "Boolean AND True Iff",
+  "difficulty": "medium",
+  "category": "booleans",
+  "tags": ["booleans", "iff", "case analysis"],
+  "description": "Prove the logical characterization of `andb`: the conjunction `andb a b` is `true` if and only if both `a` and `b` are `true`.\n\n**Goal:** `forall a b : bool, andb a b = true <-> a = true /\\ b = true`\n\nThis proof requires handling both directions of the `<->` (iff) connective using `split`, and case analysis on the boolean values.",
+  "hints": [
+    "Use `split` to separate the proof into two directions (forward and backward)",
+    "For the forward direction, use `destruct a; destruct b` and `discriminate` to rule out impossible cases",
+    "For the backward direction, use `intros [Ha Hb]` to decompose the conjunction, then `rewrite` both hypotheses"
+  ],
+  "prelude": "(* No imports needed — bool, andb are in Coq's prelude *)",
+  "template": "Theorem andb_true_iff : forall a b : bool, andb a b = true <-> a = true /\\ b = true.\nProof.\n  (* Your proof here *)\nAdmitted.",
+  "solution": "Theorem andb_true_iff : forall a b : bool, andb a b = true <-> a = true /\\ b = true.\nProof.\n  intros a b. split.\n  - intro H. destruct a; destruct b; simpl in H; try discriminate.\n    split; reflexivity.\n  - intros [Ha Hb]. rewrite Ha. rewrite Hb. simpl. reflexivity.\nQed.",
+  "forbiddenTactics": ["admit", "Admitted"]
+}
