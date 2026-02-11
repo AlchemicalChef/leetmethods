@@ -236,11 +236,11 @@ describe('computeStats', () => {
 
     const result = computeStats(progress, problems, NO_STREAK);
 
-    // solvedCount counts all completed in progress (including orphan)
-    expect(result.solvedCount).toBe(2);
+    // solvedCount only counts completed entries matching a known problem slug
+    expect(result.solvedCount).toBe(1);
     // totalProblems is based on the problems list
     expect(result.totalProblems).toBe(1);
-    // totalAttempts includes the orphan
+    // totalAttempts includes all progress entries (including orphan)
     expect(result.totalAttempts).toBe(3);
   });
 

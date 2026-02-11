@@ -1,3 +1,37 @@
+/**
+ * @module ProblemDescription
+ *
+ * Renders the full description panel for a Coq proof problem, including
+ * metadata, hints, prelude code, prerequisites, and the reference solution.
+ *
+ * This component occupies the left panel (desktop) or top panel (mobile) of
+ * the ProblemSolver layout. It provides all the information the user needs
+ * to understand and solve the problem, organized in a scrollable view.
+ *
+ * Sections (in order):
+ * 1. **Title and metadata** -- Problem name, difficulty badge, category, tags
+ * 2. **Custom problem actions** -- Edit/Delete buttons (for user-created problems)
+ * 3. **Prerequisites** -- Which problems/concepts must be completed first
+ * 4. **Description** -- Rendered via FormattedDescription (markdown-like formatting)
+ * 5. **Hints** -- Progressive reveal; tracks how many the user has uncovered
+ * 6. **Prelude** -- Collapsible view of read-only imports/definitions
+ * 7. **Reference solution** -- Gated behind a confirmation dialog, then collapsible
+ *
+ * Design decisions:
+ * - Hints use progressive reveal to encourage users to think before peeking.
+ *   Each reveal is tracked in the progress store for analytics.
+ * - The reference solution requires explicit confirmation ("Are you sure?")
+ *   to discourage premature viewing. It is only available after completion,
+ *   or after 5+ failed attempts (mercy rule).
+ * - The prelude section is collapsed by default since most users do not need
+ *   to reference it, but advanced users can expand it to see imports/helpers.
+ * - Uses FormattedDescription component for description rendering which
+ *   supports basic markdown-like formatting and prevents XSS (FIX #2).
+ *
+ * @see {@link ProblemSolver} for the parent component
+ * @see {@link FormattedDescription} for the description text renderer
+ * @see {@link PrerequisitesPanel} for the prerequisites display
+ */
 'use client';
 
 import { useState } from 'react';
@@ -10,20 +44,47 @@ import { ChevronDown, ChevronRight, Lightbulb, BookOpen, Eye } from 'lucide-reac
 import type { Problem } from '@/lib/problems/types';
 import type { PrerequisiteStatus } from '@/lib/prerequisites';
 import { DIFFICULTY_COLORS } from '@/lib/ui-constants';
+import { FormattedDescription } from '@/lib/format-text';
 import { PrerequisitesPanel } from './PrerequisitesPanel';
 
+/* ============================================================================
+ * Types
+ * ============================================================================ */
+
+/**
+ * Props for the ProblemDescription component.
+ */
 interface ProblemDescriptionProps {
+  /** The full problem object containing all metadata and content */
   problem: Problem;
+  /** How many hints have been revealed so far (0-based count) */
   hintsRevealed: number;
+  /** Callback to reveal the next hint */
   onRevealHint: () => void;
+  /** Whether the reference solution is available to view */
   solutionAvailable?: boolean;
+  /** Prerequisite satisfaction status (which prereqs are met/unmet) */
   prerequisiteStatus?: PrerequisiteStatus;
+  /** Whether this is a user-created custom problem */
   isCustom?: boolean;
+  /** Callback for the Edit button (custom problems only) */
   onEdit?: () => void;
+  /** Callback for the Delete button (custom problems only) */
   onDelete?: () => void;
+  /** Additional CSS classes for the scroll area container */
   className?: string;
 }
 
+/* ============================================================================
+ * ProblemDescription Component
+ * ============================================================================ */
+
+/**
+ * Full problem description panel with metadata, hints, prelude, and solution.
+ *
+ * @param props - See {@link ProblemDescriptionProps}
+ * @returns The scrollable problem description UI
+ */
 export function ProblemDescription({
   problem,
   hintsRevealed,
@@ -35,15 +96,17 @@ export function ProblemDescription({
   onDelete,
   className = '',
 }: ProblemDescriptionProps) {
+  /** Whether the collapsible prelude section is expanded */
   const [showPrelude, setShowPrelude] = useState(false);
 
   return (
     <ScrollArea className={`h-full ${className}`}>
       <div className="p-6 space-y-6">
-        {/* Title and metadata */}
+        {/* Section: Title and metadata badges */}
         <div>
           <h1 className="text-2xl font-bold mb-3">{problem.title}</h1>
           <div className="flex flex-wrap gap-2 items-center">
+            {/* Difficulty badge with color coding from ui-constants */}
             <Badge className={DIFFICULTY_COLORS[problem.difficulty]}>
               {problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}
             </Badge>
@@ -56,7 +119,7 @@ export function ProblemDescription({
           </div>
         </div>
 
-        {/* Custom problem actions */}
+        {/* Section: Custom problem actions (Edit/Delete) */}
         {isCustom && (onEdit || onDelete) && (
           <div className="flex items-center gap-2">
             {onEdit && (
@@ -72,19 +135,19 @@ export function ProblemDescription({
           </div>
         )}
 
-        {/* Prerequisites */}
+        {/* Section: Prerequisites panel -- only shown if there are any prereqs */}
         {prerequisiteStatus && (prerequisiteStatus.problemPrereqs.length > 0 || prerequisiteStatus.conceptPrereqs.length > 0) && (
           <PrerequisitesPanel status={prerequisiteStatus} />
         )}
 
         <Separator />
 
-        {/* Description - FIX #2: Sanitize HTML to prevent XSS */}
+        {/* Section: Problem description -- FIX #2: Sanitize HTML to prevent XSS */}
         <div className="prose prose-sm dark:prose-invert max-w-none">
           <FormattedDescription text={problem.description} />
         </div>
 
-        {/* Hints section */}
+        {/* Section: Progressive hints */}
         {problem.hints.length > 0 && (
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -95,6 +158,7 @@ export function ProblemDescription({
               </span>
             </div>
 
+            {/* Revealed hints -- shown with a yellow left border for visual grouping */}
             <div className="space-y-2">
               {problem.hints.slice(0, hintsRevealed).map((hint, index) => (
                 <div
@@ -107,6 +171,7 @@ export function ProblemDescription({
               ))}
             </div>
 
+            {/* Reveal next hint button -- hidden when all hints are shown */}
             {hintsRevealed < problem.hints.length && (
               <Button
                 variant="ghost"
@@ -121,7 +186,7 @@ export function ProblemDescription({
           </Card>
         )}
 
-        {/* Prelude section */}
+        {/* Section: Collapsible prelude code (read-only imports/definitions) */}
         {problem.prelude && (
           <Card className="overflow-hidden">
             <button
@@ -149,7 +214,7 @@ export function ProblemDescription({
           </Card>
         )}
 
-        {/* Solution reveal */}
+        {/* Section: Reference solution (gated behind confirmation) */}
         {solutionAvailable && problem.solution && (
           <SolutionReveal solution={problem.solution} />
         )}
@@ -158,10 +223,30 @@ export function ProblemDescription({
   );
 }
 
+/* ============================================================================
+ * SolutionReveal Sub-component
+ * ============================================================================ */
+
+/**
+ * Two-phase solution reveal component.
+ *
+ * Phase 1 (not confirmed): Shows a warning card asking the user to confirm
+ * they want to see the solution. This friction is intentional to encourage
+ * independent problem-solving.
+ *
+ * Phase 2 (confirmed): Shows a collapsible card with the reference solution
+ * code. The solution starts collapsed so the user can still avoid seeing it
+ * even after confirming.
+ *
+ * @param props.solution - The reference Coq proof solution code
+ */
 function SolutionReveal({ solution }: { solution: string }) {
+  /** Whether the user has confirmed they want to see the solution */
   const [confirmed, setConfirmed] = useState(false);
+  /** Whether the solution code block is expanded (only after confirmation) */
   const [expanded, setExpanded] = useState(false);
 
+  /* --- Phase 1: Confirmation prompt --- */
   if (!confirmed) {
     return (
       <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-4">
@@ -185,6 +270,7 @@ function SolutionReveal({ solution }: { solution: string }) {
     );
   }
 
+  /* --- Phase 2: Collapsible solution view --- */
   return (
     <Card className="border-amber-200 dark:border-amber-800 overflow-hidden">
       <button
@@ -209,140 +295,4 @@ function SolutionReveal({ solution }: { solution: string }) {
       )}
     </Card>
   );
-}
-
-// FIX #2: Safe markdown-like formatting without dangerouslySetInnerHTML
-// This approach uses React components instead of raw HTML
-function FormattedDescription({ text }: { text: string }) {
-  const lines = text.split('\n');
-  const elements: React.ReactNode[] = [];
-  let currentParagraph: React.ReactNode[] = [];
-  let inCodeBlock = false;
-  let codeBlockContent: string[] = [];
-  let codeBlockLang = '';
-  let key = 0;
-
-  const flushParagraph = () => {
-    if (currentParagraph.length > 0) {
-      elements.push(<p key={key++}>{currentParagraph}</p>);
-      currentParagraph = [];
-    }
-  };
-
-  // Use a ref counter to ensure unique keys across all inline elements
-  let inlineKeyCounter = 0;
-
-  const formatInlineText = (line: string): React.ReactNode[] => {
-    const result: React.ReactNode[] = [];
-    let remaining = line;
-
-    while (remaining.length > 0) {
-      // Bold
-      const boldMatch = remaining.match(/^\*\*(.+?)\*\*/);
-      if (boldMatch) {
-        result.push(<strong key={`inline-${inlineKeyCounter++}`}>{boldMatch[1]}</strong>);
-        remaining = remaining.slice(boldMatch[0].length);
-        continue;
-      }
-
-      // Italic
-      const italicMatch = remaining.match(/^\*(.+?)\*/);
-      if (italicMatch) {
-        result.push(<em key={`inline-${inlineKeyCounter++}`}>{italicMatch[1]}</em>);
-        remaining = remaining.slice(italicMatch[0].length);
-        continue;
-      }
-
-      // Inline code
-      const codeMatch = remaining.match(/^`([^`]+)`/);
-      if (codeMatch) {
-        result.push(
-          <code key={`inline-${inlineKeyCounter++}`} className="bg-muted px-1 py-0.5 rounded text-sm font-mono">
-            {codeMatch[1]}
-          </code>
-        );
-        remaining = remaining.slice(codeMatch[0].length);
-        continue;
-      }
-
-      // Regular text - find next special character or end
-      const nextSpecial = remaining.search(/\*|`/);
-      if (nextSpecial === -1) {
-        result.push(<span key={`inline-${inlineKeyCounter++}`}>{remaining}</span>);
-        break;
-      } else if (nextSpecial === 0) {
-        // Special char that didn't match patterns, add as text
-        result.push(<span key={`inline-${inlineKeyCounter++}`}>{remaining[0]}</span>);
-        remaining = remaining.slice(1);
-      } else {
-        result.push(<span key={`inline-${inlineKeyCounter++}`}>{remaining.slice(0, nextSpecial)}</span>);
-        remaining = remaining.slice(nextSpecial);
-      }
-    }
-
-    return result;
-  };
-
-  for (const line of lines) {
-    // Code block start/end
-    if (line.startsWith('```')) {
-      if (!inCodeBlock) {
-        flushParagraph();
-        inCodeBlock = true;
-        codeBlockLang = line.slice(3).trim();
-        codeBlockContent = [];
-      } else {
-        elements.push(
-          <pre key={key++} className="bg-muted p-4 rounded-md overflow-x-auto">
-            <code className={codeBlockLang ? `language-${codeBlockLang}` : ''}>
-              {codeBlockContent.join('\n')}
-            </code>
-          </pre>
-        );
-        inCodeBlock = false;
-        codeBlockContent = [];
-        codeBlockLang = '';
-      }
-      continue;
-    }
-
-    if (inCodeBlock) {
-      codeBlockContent.push(line);
-      continue;
-    }
-
-    // Headers
-    if (line.startsWith('### ')) {
-      flushParagraph();
-      elements.push(<h3 key={key++} className="text-lg font-semibold mt-4 mb-2">{line.slice(4)}</h3>);
-      continue;
-    }
-    if (line.startsWith('## ')) {
-      flushParagraph();
-      elements.push(<h2 key={key++} className="text-xl font-semibold mt-4 mb-2">{line.slice(3)}</h2>);
-      continue;
-    }
-    if (line.startsWith('# ')) {
-      flushParagraph();
-      elements.push(<h1 key={key++} className="text-2xl font-bold mt-4 mb-2">{line.slice(2)}</h1>);
-      continue;
-    }
-
-    // Empty line = paragraph break
-    if (line.trim() === '') {
-      flushParagraph();
-      continue;
-    }
-
-    // Regular text with inline formatting
-    if (currentParagraph.length > 0) {
-      currentParagraph.push(' ');
-    }
-    currentParagraph.push(...formatInlineText(line));
-  }
-
-  // Flush any remaining content
-  flushParagraph();
-
-  return <>{elements}</>;
 }

@@ -7,9 +7,9 @@ describe('getAllPaths', () => {
     expect(Array.isArray(paths)).toBe(true);
   });
 
-  it('should return exactly 3 paths', () => {
+  it('should return exactly 8 paths', () => {
     const paths = getAllPaths();
-    expect(paths).toHaveLength(3);
+    expect(paths).toHaveLength(8);
   });
 
   it('should ensure every path has all required fields', () => {
@@ -250,22 +250,22 @@ describe('Data Integrity', () => {
   });
 
   describe('Expected Path Structure', () => {
-    it('should have "foundations-of-logic" as the first path', () => {
+    it('should have "boolean-basics" as the first path', () => {
       const paths = getAllPaths();
-      expect(paths[0].slug).toBe('foundations-of-logic');
+      expect(paths[0].slug).toBe('boolean-basics');
       expect(paths[0].difficulty).toBe('beginner');
     });
 
-    it('should have "mastering-induction" as the second path', () => {
+    it('should have "foundations-of-logic" as the second path', () => {
       const paths = getAllPaths();
-      expect(paths[1].slug).toBe('mastering-induction');
-      expect(paths[1].difficulty).toBe('intermediate');
+      expect(paths[1].slug).toBe('foundations-of-logic');
+      expect(paths[1].difficulty).toBe('beginner');
     });
 
-    it('should have "reasoning-about-data" as the third path', () => {
+    it('should have "introduction-to-induction" as the third path', () => {
       const paths = getAllPaths();
-      expect(paths[2].slug).toBe('reasoning-about-data');
-      expect(paths[2].difficulty).toBe('advanced');
+      expect(paths[2].slug).toBe('introduction-to-induction');
+      expect(paths[2].difficulty).toBe('beginner');
     });
   });
 
@@ -293,7 +293,7 @@ describe('Data Integrity', () => {
 
     it('should have expected number of steps in "mastering-induction"', () => {
       const path = getPathBySlug('mastering-induction');
-      expect(path?.steps.length).toBeGreaterThanOrEqual(5);
+      expect(path?.steps.length).toBeGreaterThanOrEqual(4);
     });
 
     it('should have expected number of steps in "reasoning-about-data"', () => {

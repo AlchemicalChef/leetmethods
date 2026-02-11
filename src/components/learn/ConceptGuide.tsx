@@ -1,15 +1,58 @@
+/**
+ * @module ConceptGuide
+ *
+ * Expandable accordion of core Coq concepts with explanations and code examples.
+ *
+ * This component provides educational content for users learning Coq, covering
+ * fundamental topics like propositions, induction, lists, relations, and
+ * data structures. Each concept can be expanded to reveal a prose explanation
+ * and an optional Coq code example.
+ *
+ * The concept data is defined inline as a static array rather than loaded
+ * from files because:
+ *   1. The content is short and unlikely to change frequently
+ *   2. Keeping it co-located with the component makes it easy to update
+ *   3. No build pipeline or content management is needed
+ *
+ * Design decisions:
+ *   - Only one concept can be expanded at a time (accordion pattern) to
+ *     keep the page scannable and reduce cognitive overload.
+ *   - Examples use `<pre><code>` blocks with monospace font for proper
+ *     Coq code formatting, including inline comments.
+ *   - The chevron icon rotates between right (collapsed) and down (expanded)
+ *     to give clear visual feedback about the expandable state.
+ */
 'use client';
 
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
+/* ========================================================================
+ * Concept Data Definitions
+ * ======================================================================== */
+
+/**
+ * Shape of a single concept section in the guide.
+ *
+ * @property title - Display name shown in the accordion header.
+ * @property content - Prose explanation of the concept.
+ * @property example - Optional Coq code example demonstrating the concept.
+ */
 interface ConceptSection {
   title: string;
   content: string;
   example?: string;
 }
 
+/**
+ * Static array of concept sections covering the core topics taught in
+ * LeetMethods. Each entry maps to one expandable accordion item.
+ *
+ * The ordering is intentional: starts with the foundational Curry-Howard
+ * correspondence, then builds up through induction, lists, relations,
+ * and custom data structures -- mirroring the typical learning progression.
+ */
 const concepts: ConceptSection[] = [
   {
     title: 'Propositions and Proofs',
@@ -77,17 +120,31 @@ Fixpoint size {A : Type} (t : tree A) : nat :=
   },
 ];
 
+/* ========================================================================
+ * ConceptGuide Component
+ * ======================================================================== */
+
+/**
+ * Renders an accordion-style list of Coq concept explanations with
+ * optional code examples.
+ *
+ * @returns The concept guide accordion UI.
+ */
 export function ConceptGuide() {
+  /** Title of the currently expanded concept, or null if all are collapsed */
   const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
     <div className="space-y-2">
       {concepts.map((concept) => (
         <Card key={concept.title} className="overflow-hidden">
+          {/* Accordion header -- clickable button that toggles expansion.
+              Clicking an already-expanded concept collapses it. */}
           <button
             onClick={() => setExpanded(expanded === concept.title ? null : concept.title)}
             className="w-full p-4 flex items-center gap-3 hover:bg-muted/30 transition-colors text-left"
           >
+            {/* Chevron direction indicates expanded/collapsed state */}
             {expanded === concept.title ? (
               <ChevronDown className="h-4 w-4 shrink-0" />
             ) : (
@@ -95,9 +152,14 @@ export function ConceptGuide() {
             )}
             <span className="font-medium">{concept.title}</span>
           </button>
+
+          {/* Expanded content area -- only rendered for the active concept */}
           {expanded === concept.title && (
             <div className="border-t px-4 py-4 space-y-4 bg-muted/10">
+              {/* Prose explanation of the concept */}
               <p className="text-sm leading-relaxed">{concept.content}</p>
+
+              {/* Optional Coq code example in a scrollable monospace block */}
               {concept.example && (
                 <pre className="text-sm font-mono bg-muted p-4 rounded-md overflow-x-auto">
                   <code>{concept.example}</code>

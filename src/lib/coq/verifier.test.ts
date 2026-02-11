@@ -124,6 +124,21 @@ reflexivity.`;
     expect(result.found).toEqual(['admit']);
   });
 
+  it('ignores comment markers inside string literals', () => {
+    // "(*" inside a string should not open a comment
+    const code = 'Definition x := "(*". admit. Definition y := "*)".';
+    const result = checkForbiddenTactics(code, ['admit']);
+    expect(result.hasForbidden).toBe(true);
+    expect(result.found).toEqual(['admit']);
+  });
+
+  it('handles Coq escaped quotes inside strings near comment markers', () => {
+    const code = 'Definition x := "say ""(*"" end". admit.';
+    const result = checkForbiddenTactics(code, ['admit']);
+    expect(result.hasForbidden).toBe(true);
+    expect(result.found).toEqual(['admit']);
+  });
+
   // --- Empty and clean code ---
 
   it('returns no findings when forbidden list is empty', () => {

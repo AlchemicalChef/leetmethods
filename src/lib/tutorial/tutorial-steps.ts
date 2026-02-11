@@ -1,16 +1,65 @@
-export interface TutorialStep {
-  id: number;
-  title: string;
-  explanation: string;
-  exercise: {
-    prelude: string;
-    template: string;
-    solution: string;
-  };
-  successMessage: string;
-  hint: string;
-}
+/**
+ * @module TutorialBasicsSteps
+ *
+ * Step definitions for the "Basics" tutorial -- the very first tutorial
+ * in the LeetMethods curriculum.
+ *
+ * This tutorial introduces the foundational concepts of Coq proof writing:
+ *   1. What Coq is and proving `True` with `exact I`
+ *   2. Understanding goals and hypotheses; the step-forward workflow
+ *   3. The `intros` tactic for introducing universally quantified
+ *      variables and implications
+ *   4. The `apply` tactic for backward reasoning (modus ponens)
+ *   5. The `split` tactic for proving conjunctions (`A /\ B`)
+ *
+ * Each step follows a consistent pedagogical pattern:
+ *   - **Explanation**: Markdown text teaching the concept with examples
+ *   - **Exercise**: A Coq theorem statement with `Admitted.` as placeholder
+ *   - **Solution**: The complete correct proof (for "Show Solution")
+ *   - **Hint**: A one-liner nudge if the user is stuck
+ *   - **Success message**: Reinforcement text shown on completion
+ *
+ * Design decisions:
+ * - All exercises use `(* No imports needed *)` as their prelude since
+ *   these basic proofs only use core Coq tactics (no stdlib imports).
+ * - Templates end with `Admitted.` so the forbidden tactic detector will
+ *   flag unmodified submissions (the user must replace `Admitted.` with
+ *   actual tactics and `Qed.`).
+ * - Solutions end with `Qed.` (not `Admitted.`) to represent complete proofs.
+ * - The `forall P : Prop, P -> P` example is pedagogically important:
+ *   it requires `intros P H` (two names) because `intros H` alone would
+ *   only introduce `P` as `H : Prop`, leaving `P -> P` as the goal.
+ *
+ * Re-exports the `TutorialStep` type from `./types` for backward
+ * compatibility with files that import it from this module.
+ */
 
+import type { TutorialStep } from './types';
+
+/**
+ * Re-export `TutorialStep` type for backward compatibility.
+ * Older parts of the codebase may import `TutorialStep` from this module
+ * rather than from `./types` directly.
+ */
+export type { TutorialStep } from './types';
+
+/* ------------------------------------------------------------------ */
+/*  Step definitions                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The ordered array of tutorial steps for the "Basics" tutorial.
+ *
+ * These five steps form a carefully sequenced introduction to Coq:
+ *   Step 1: `exact I` -- the simplest possible proof
+ *   Step 2: `intros` + `exact` -- identity proof, introduces goal/hypothesis panel
+ *   Step 3: `intros` with multiple bindings -- first_arg theorem
+ *   Step 4: `apply` -- backward reasoning via modus ponens
+ *   Step 5: `split` + `exact` -- conjunction introduction, combining tactics
+ *
+ * After completing all five steps, the user is directed to the
+ * "Applied Methods" tutorial via the `completionLink` in the registry.
+ */
 export const tutorialSteps: TutorialStep[] = [
   {
     id: 1,
@@ -39,16 +88,16 @@ Try typing \`exact I.\` between \`Proof.\` and \`Admitted.\`, then click **Run**
 
 **Step-by-step execution:** Instead of running all code at once, you can step through one tactic at a time using the **Step Forward** button (or \`Alt+N\`). This lets you see how each tactic changes the proof state.
 
-**Your task:** Prove \`P -> P\` (if P then P). Use \`intros H\` to move P from the goal into your hypotheses as \`H\`, then use \`exact H\` to finish.
+**Your task:** Prove \`P -> P\` (if P then P). Use \`intros P H\` to move the proposition \`P\` and its proof \`H\` from the goal into your hypotheses, then use \`exact H\` to finish.
 
 Try stepping through one tactic at a time to see the goals change!`,
     exercise: {
       prelude: '(* No imports needed *)',
       template: `Theorem identity : forall P : Prop, P -> P.\nProof.\n  (* Your proof here *)\nAdmitted.`,
-      solution: `Theorem identity : forall P : Prop, P -> P.\nProof.\n  intros H.\n  exact H.\nQed.`,
+      solution: `Theorem identity : forall P : Prop, P -> P.\nProof.\n  intros P H.\n  exact H.\nQed.`,
     },
-    successMessage: 'Great! You used "intros" to move a hypothesis into context and "exact" to prove the goal.',
-    hint: 'Type: intros H. exact H. (each followed by a period)',
+    successMessage: 'Great! You used "intros" to move the proposition P and hypothesis H into context, then "exact" to prove the goal.',
+    hint: 'Type: intros P H. exact H. (each followed by a period)',
   },
   {
     id: 3,

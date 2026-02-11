@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   getAllProblems,
   getProblemSummaries,
-  getAllProblemsSync,
 } from './loader';
 
 // ---------------------------------------------------------------------------
@@ -10,14 +9,14 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('getAllProblems', () => {
-  it('returns an array of problems', async () => {
-    const problems = await getAllProblems();
+  it('returns an array of problems', () => {
+    const problems = getAllProblems();
     expect(Array.isArray(problems)).toBe(true);
     expect(problems.length).toBeGreaterThan(0);
   });
 
-  it('every problem has all required fields', async () => {
-    const problems = await getAllProblems();
+  it('every problem has all required fields', () => {
+    const problems = getAllProblems();
     for (const p of problems) {
       expect(p.id).toBeTruthy();
       expect(p.slug).toBeTruthy();
@@ -34,29 +33,16 @@ describe('getAllProblems', () => {
     }
   });
 
-  it('has unique slugs across all problems', async () => {
-    const problems = await getAllProblems();
+  it('has unique slugs across all problems', () => {
+    const problems = getAllProblems();
     const slugs = problems.map((p) => p.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
   });
 
-  it('has unique IDs across all problems', async () => {
-    const problems = await getAllProblems();
+  it('has unique IDs across all problems', () => {
+    const problems = getAllProblems();
     const ids = problems.map((p) => p.id);
     expect(new Set(ids).size).toBe(ids.length);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getAllProblemsSync
-// ---------------------------------------------------------------------------
-
-describe('getAllProblemsSync', () => {
-  it('returns the same problems as getAllProblems', async () => {
-    const asyncProblems = await getAllProblems();
-    const syncProblems = getAllProblemsSync();
-    expect(syncProblems.length).toBe(asyncProblems.length);
-    expect(syncProblems.map((p) => p.slug).sort()).toEqual(asyncProblems.map((p) => p.slug).sort());
   });
 });
 
@@ -65,8 +51,8 @@ describe('getAllProblemsSync', () => {
 // ---------------------------------------------------------------------------
 
 describe('getProblemSummaries', () => {
-  it('returns summaries with only the expected fields', async () => {
-    const summaries = await getProblemSummaries();
+  it('returns summaries with only the expected fields', () => {
+    const summaries = getProblemSummaries();
     const summaryKeys = ['id', 'slug', 'title', 'difficulty', 'category', 'tags'];
 
     for (const s of summaries) {
@@ -74,8 +60,8 @@ describe('getProblemSummaries', () => {
     }
   });
 
-  it('does not include problem-detail fields like description or prelude', async () => {
-    const summaries = await getProblemSummaries();
+  it('does not include problem-detail fields like description or prelude', () => {
+    const summaries = getProblemSummaries();
     for (const s of summaries) {
       const obj = s as unknown as Record<string, unknown>;
       expect(obj.description).toBeUndefined();
@@ -87,9 +73,9 @@ describe('getProblemSummaries', () => {
     }
   });
 
-  it('returns the same count as getAllProblems', async () => {
-    const problems = await getAllProblems();
-    const summaries = await getProblemSummaries();
+  it('returns the same count as getAllProblems', () => {
+    const problems = getAllProblems();
+    const summaries = getProblemSummaries();
     expect(summaries.length).toBe(problems.length);
   });
 });

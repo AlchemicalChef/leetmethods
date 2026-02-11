@@ -134,6 +134,14 @@ describe('isProofStart', () => {
     expect(isProofStart('(* Proof. *)')).toBe(false);
   });
 
+  it('returns false when Proof is inside a nested comment', () => {
+    expect(isProofStart('(* foo (* Proof *) Proof. *)')).toBe(false);
+  });
+
+  it('returns false when Proof is inside a string with escaped quotes', () => {
+    expect(isProofStart('"He said ""Proof"" today"')).toBe(false);
+  });
+
   it('returns false for "Theorem"', () => {
     expect(isProofStart('Theorem')).toBe(false);
   });

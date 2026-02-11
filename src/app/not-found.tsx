@@ -1,3 +1,21 @@
+/**
+ * @module NotFound
+ *
+ * Custom 404 page for the LeetMethods application.
+ *
+ * This component is rendered by Next.js whenever:
+ *   - A user navigates to a URL that does not match any defined route.
+ *   - A page or layout explicitly calls `notFound()` from 'next/navigation'
+ *     (e.g., when a problem slug does not exist in the problem registry).
+ *
+ * The page provides a simple, centered "404" message with a link back to the
+ * home page. It uses Next.js's `Link` component for client-side navigation
+ * to avoid a full page reload when the user clicks "Go Home".
+ *
+ * This is a **server component** -- no client-side interactivity is required.
+ *
+ * @returns A centered 404 error page with a navigation link to the home page.
+ */
 import Link from 'next/link';
 
 export default function NotFound() {
