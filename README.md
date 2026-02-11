@@ -1,146 +1,109 @@
 # LeetMethods
 
-A LeetCode-style platform for practicing formal proofs in Coq. Solve proof challenges directly in your browser with real-time verification powered by jsCoq.
+A LeetCode-style platform for practicing formal proofs in Coq. Solve proof problems interactively in the browser, learn tactics through guided tutorials, and build long-term retention with spaced repetition.
 
 ## Features
 
-- **In-browser Coq verification** -- proofs are checked by the actual Coq proof assistant running client-side via jsCoq 0.17.1
-- **10 built-in problems** across 4 categories (logic, induction, lists, arithmetic)
-- **Interactive editor** with CodeMirror 6 and Coq syntax highlighting
-- **Step-by-step execution** -- execute proofs one statement at a time or all at once
-- **Live goals panel** -- see proof goals and hypotheses update as you step through
-- **Forbidden tactic detection** -- prevents `admit`/`Admitted` and other disallowed shortcuts
-- **Progress tracking** -- completion status, attempt counts, and hints persisted in local storage
-- **Dark mode** support
+- **Interactive Coq Proofs** -- Write and verify Coq proofs directly in the browser using jsCoq, with real-time goal display and error feedback
+- **Problem Library** -- Curated problems across logic, induction, lists, arithmetic, data structures, and relations, each with hints, difficulty ratings, and prerequisite tracking
+- **Tutorial System** -- Progressive tutorials based on the Software Foundations curriculum (Logical Foundations, Programming Language Foundations, Verified Functional Algorithms)
+- **Spaced Repetition** -- SM-2 algorithm schedules reviews of completed problems to build lasting understanding
+- **Learning Paths** -- Structured sequences of problems with prerequisite tracking and progress visualization
+- **Achievements** -- Milestone, mastery, skill, and dedication badges for reaching learning goals
+- **Custom Problems** -- Create and solve your own proof problems
+- **Dark Mode** -- Full light/dark theme support
+- **Fully Client-Side** -- No backend, no accounts, no data collection. All progress is stored in your browser's localStorage
 
 ## Tech Stack
 
-- **Next.js 14** (App Router) + TypeScript
-- **jsCoq 0.17.1** -- self-hosted Coq proof assistant (js_of_ocaml backend)
-- **CodeMirror 6** -- editor with Coq syntax support
-- **Tailwind CSS** + **shadcn/ui** -- styling and components
-- **Zustand** -- state management
+- [Next.js 14](https://nextjs.org/) (App Router)
+- [React 18](https://react.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [CodeMirror 6](https://codemirror.net/) with custom Coq syntax highlighting
+- [jsCoq 0.17.1](https://github.com/jscoq/jscoq) (runs in an isolated iframe)
+- [Zustand](https://github.com/pmndrs/zustand) for state management
+- [Radix UI](https://www.radix-ui.com/) primitives
+- [Vitest](https://vitest.dev/) + [Playwright](https://playwright.dev/) for testing
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Installation
+
 ```bash
+git clone https://github.com/your-username/leetmethods.git
+cd leetmethods
 npm install
+```
+
+### Development
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to start solving proofs.
+Open [http://localhost:3000](http://localhost:3000).
+
+### Other Commands
+
+```bash
+npm run build          # Production build
+npm run lint           # ESLint
+npm test               # Run all unit tests
+npm run test:watch     # Watch mode
+npm run test:coverage  # Tests with coverage report
+npm run type-check     # TypeScript type checking
+npm run test:e2e       # Playwright end-to-end tests
+```
 
 ## Project Structure
 
 ```
 src/
   app/                    # Next.js App Router pages
-    problems/[slug]/      # Individual problem pages
+    learn/                # Learning paths hub
+    problems/             # Problem browser and solver
+      [slug]/             # Individual problem page
+      custom/             # Custom problem creation/solving
+    stats/                # Progress statistics and SRS reviews
+    tutorial/             # Tutorial hub and dynamic tutorial pages
+      [slug]/             # Individual tutorial page
   components/
-    editor/               # CoqEditor, GoalsPanel
-    problem/              # ProblemSolver, ProblemDescription, EditorToolbar
-    ui/                   # shadcn/ui components
+    editor/               # CoqEditor, GoalsPanel, EditorToolbar
+    learn/                # Learning path cards and progress
+    problem/              # ProblemSolver, ProblemList, descriptions
+    stats/                # Stats overview, review section, achievements
+    tutorial/             # Tutorial page component
+    ui/                   # Shared UI primitives (Card, Badge, Dialog, etc.)
   content/
-    problems/             # Problem definitions (JSON)
-      arithmetic/         # add-assoc, even-double
-      induction/          # plus-n-zero, plus-comm, mult-n-zero
-      lists/              # list-length-app, list-rev-rev
-      logic/              # modus-ponens, double-negation, and-commutative
+    problems/             # Problem JSON files by category
+  hooks/                  # React hooks (useCoqSession, useAchievementChecker)
   lib/
-    coq/                  # CoqService, types, verifier
+    coq/                  # CoqService, parser, verifier, syntax, autocomplete
+    paths/                # Learning paths definitions and progress
+    prerequisites/        # Concept prerequisite graph
     problems/             # Problem loader and types
-  store/                  # Zustand stores (coqStore, progressStore)
+    srs/                  # SM-2 spaced repetition algorithm
+    tutorial/             # Tutorial step definitions and registry
+  store/                  # Zustand stores (progress, editor, achievements, etc.)
 public/
-  coq-worker.html         # Iframe-isolated jsCoq runtime
-  jscoq/                  # Self-hosted jsCoq assets
-```
-
-## Problems
-
-| Category   | Problems                                    | Difficulty  |
-|------------|---------------------------------------------|-------------|
-| Logic      | Modus Ponens, Double Negation, AND Commutativity | Easy        |
-| Induction  | Plus N Zero, Plus Commutativity, Mult N Zero | Easy-Medium |
-| Lists      | List Length Append, List Rev Rev             | Medium-Hard |
-| Arithmetic | Even Double, Addition Associativity          | Medium-Hard |
-
-## Adding New Problems
-
-### 1. Create the problem JSON file
-
-Add a file to `src/content/problems/<category>/<slug>.json`:
-
-```json
-{
-  "id": "11",
-  "slug": "or-commutative",
-  "title": "Disjunction is Commutative",
-  "difficulty": "easy",
-  "category": "logic",
-  "tags": ["disjunction", "basic"],
-  "description": "Prove that logical OR is commutative.\n\n**Goal:** `forall P Q : Prop, P \\/ Q -> Q \\/ P`",
-  "hints": [
-    "Use `intros` to introduce the propositions and hypothesis",
-    "Use `destruct` on the disjunction to case-split",
-    "Use `left` and `right` to choose which side to prove"
-  ],
-  "prelude": "(* No imports needed *)",
-  "template": "Theorem or_commutative : forall P Q : Prop, P \\/ Q -> Q \\/ P.\nProof.\n  (* Your proof here *)\nAdmitted.",
-  "solution": "Theorem or_commutative : forall P Q : Prop, P \\/ Q -> Q \\/ P.\nProof.\n  intros P Q H.\n  destruct H as [HP | HQ].\n  - right. exact HP.\n  - left. exact HQ.\nQed.",
-  "forbiddenTactics": ["admit", "Admitted"]
-}
-```
-
-### 2. Register it in the loader
-
-Edit `src/lib/problems/loader.ts`:
-
-```typescript
-import orCommProblem from '@/content/problems/logic/or-commutative.json';
-
-const problems: Problem[] = [
-  // ...existing problems...
-  orCommProblem as Problem,
-];
-```
-
-### Field Reference
-
-| Field              | Description                                                      |
-|--------------------|------------------------------------------------------------------|
-| `id`               | Unique numeric string                                            |
-| `slug`             | URL-friendly identifier (used in `/problems/<slug>`)             |
-| `title`            | Display name                                                     |
-| `difficulty`       | `"easy"`, `"medium"`, or `"hard"`                                |
-| `category`         | Folder name under `src/content/problems/`                        |
-| `tags`             | Array of topic tags                                              |
-| `description`      | Markdown-formatted problem description                           |
-| `hints`            | Progressive hints revealed one at a time                         |
-| `prelude`          | Coq code loaded before the user's code (imports, helper lemmas)  |
-| `template`         | Starting code shown in the editor (should end with `Admitted.`)  |
-| `solution`         | Reference solution (not shown to users)                          |
-| `forbiddenTactics` | Tactics that are blocked (always include `admit` and `Admitted`) |
-
-### Tips
-
-- **prelude**: Use for `Require Import` statements and helper lemmas. Keep it minimal.
-- **template**: Always end with `Admitted.` so the forbidden tactic check catches unmodified submissions.
-- **Test your solution**: Paste the full `prelude + solution` into the app to verify it compiles.
-- **Categories**: `logic`, `induction`, `lists`, `arithmetic`. Create new category folders as needed.
-
-## Scripts
-
-```bash
-npm run dev      # Start dev server
-npm run build    # Production build
-npm run start    # Start production server
-npm run lint     # Run ESLint
+  coq-worker.html         # Isolated iframe for jsCoq execution
+  jscoq/                  # jsCoq 0.17.1 runtime files
 ```
 
 ## Architecture
 
-jsCoq runs inside a hidden iframe (`public/coq-worker.html`) to isolate it from the Next.js environment. The `CoqService` class in `src/lib/coq/CoqService.ts` communicates with the iframe via `postMessage`. This architecture avoids conflicts between jsCoq's internal state machine and Next.js's runtime, also i have great disdain for next.js
+LeetMethods is entirely client-side. jsCoq runs inside a hidden iframe to avoid state machine conflicts with Next.js, communicating via `postMessage`. A singleton `CoqService` manages the iframe lifecycle and persists across page navigations to avoid expensive re-initialization.
+
+State is managed by five Zustand stores, four of which persist to localStorage with safe error handling and schema migrations.
+
+For full architectural details, see [CLAUDE.md](./CLAUDE.md).
 
 ## License
 
-MIT
+[MIT](./LICENSE)
