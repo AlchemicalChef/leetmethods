@@ -38,6 +38,7 @@ import type { CoqMessage } from '@/store/coqStore';
 import type { ProblemSummary } from '@/lib/problems/types';
 import type { TacticSuggestion } from '@/lib/coq/tactic-suggester';
 import { formatCoqError } from '@/lib/coq/error-helper';
+import { getTypeBadge } from '@/lib/coq/type-classifier';
 import { GuidedProofPanel } from './GuidedProofPanel';
 import Link from 'next/link';
 
@@ -61,6 +62,8 @@ interface GoalsPanelProps {
   nextProblem?: ProblemSummary | null;
   /** Tactic suggestions from the guided proof system */
   guidedSuggestions?: TacticSuggestion[];
+  /** Callback to insert a tactic at the editor cursor position */
+  onInsertTactic?: (tactic: string) => void;
   /** Additional CSS classes for the container */
   className?: string;
 }
@@ -74,7 +77,7 @@ interface GoalsPanelProps {
  * @param props - See {@link GoalsPanelProps}
  * @returns The goals panel UI
  */
-export function GoalsPanel({ goals, messages = [], isLoading, isComplete, nextProblem, guidedSuggestions, className = '' }: GoalsPanelProps) {
+export function GoalsPanel({ goals, messages = [], isLoading, isComplete, nextProblem, guidedSuggestions, onInsertTactic, className = '' }: GoalsPanelProps) {
   /* --- Loading state: show spinner while Coq is executing --- */
   if (isLoading) {
     return (
@@ -154,7 +157,7 @@ export function GoalsPanel({ goals, messages = [], isLoading, isComplete, nextPr
 
         {/* Guided suggestions -- shown when guided mode is enabled and goals exist */}
         {guidedSuggestions && guidedSuggestions.length > 0 && (
-          <GuidedProofPanel suggestions={guidedSuggestions} />
+          <GuidedProofPanel suggestions={guidedSuggestions} onInsertTactic={onInsertTactic} />
         )}
       </div>
     </ScrollArea>
@@ -291,15 +294,26 @@ function GoalDisplay({ goal, index, isFirst }: GoalDisplayProps) {
         {/* Hypotheses -- named assumptions available in the proof context */}
         {goal.hypotheses.length > 0 && (
           <div className="space-y-1">
-            {goal.hypotheses.map((hyp, hypIndex) => (
-              <div key={hypIndex} className="font-mono text-sm flex gap-2">
-                <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[60px]">
-                  {hyp.name}
-                </span>
-                <span className="text-muted-foreground">:</span>
-                <span className="text-foreground">{hyp.type}</span>
-              </div>
-            ))}
+            {goal.hypotheses.map((hyp, hypIndex) => {
+              const badge = getTypeBadge(hyp.type);
+              return (
+                <div key={hypIndex} className="font-mono text-sm flex items-baseline gap-2">
+                  <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[60px]">
+                    {hyp.name}
+                  </span>
+                  <span className="text-muted-foreground">:</span>
+                  <span className="text-foreground">{hyp.type}</span>
+                  {badge && (
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium leading-4 shrink-0 ${badge.className}`}
+                      title={badge.title}
+                    >
+                      {badge.label}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -309,10 +323,21 @@ function GoalDisplay({ goal, index, isFirst }: GoalDisplayProps) {
         )}
 
         {/* Conclusion -- the proposition that needs to be proved */}
-        <div className="font-mono text-sm">
+        <div className="font-mono text-sm flex items-baseline gap-2">
           <span className={isFirst ? 'text-primary font-medium' : 'text-foreground'}>
             {goal.conclusion}
           </span>
+          {(() => {
+            const badge = getTypeBadge(goal.conclusion);
+            return badge ? (
+              <span
+                className={`inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium leading-4 shrink-0 ${badge.className}`}
+                title={badge.title}
+              >
+                {badge.label}
+              </span>
+            ) : null;
+          })()}
         </div>
       </div>
     </div>

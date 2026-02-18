@@ -140,6 +140,8 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const submittingRef = useRef(false);
   /** Tracks the current cursor offset for execute-to-cursor functionality */
   const cursorPositionRef = useRef(0);
+  /** Ref populated by CoqEditor with an insert-at-cursor function */
+  const insertTextRef = useRef<((text: string) => void) | null>(null);
 
   /** Keep codeRef in sync with the latest editor content */
   useEffect(() => {
@@ -172,6 +174,8 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
     handleExecuteToPosition: baseExecuteToPosition,
     handleReset: baseHandleReset,
     initializeCoqService,
+    errorDiagnostic,
+    clearErrorDiagnostic,
   } = useCoqSession(codeRef, {
     prelude: problem.prelude,
     onBeforeExecute: useCallback(() => {
@@ -244,12 +248,13 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const handleCodeChange = useCallback(
     (newCode: string) => {
       setCode(newCode);
+      clearErrorDiagnostic();
       if (submissionResult) {
         setSubmissionResult(null);
         clearMessages();
       }
     },
-    [setCode, submissionResult, clearMessages]
+    [setCode, submissionResult, clearMessages, clearErrorDiagnostic]
   );
 
   /** Track cursor position for the execute-to-cursor feature */
@@ -261,6 +266,11 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
   const handleExecuteToCursor = useCallback(() => {
     handleExecuteToPosition(cursorPositionRef.current);
   }, [handleExecuteToPosition]);
+
+  /** Insert a tactic at the cursor (used by click-to-insert in GoalsPanel) */
+  const handleInsertTactic = useCallback((tactic: string) => {
+    insertTextRef.current?.(tactic + '.\n');
+  }, []);
 
   /**
    * Submit the proof for full verification.
@@ -531,6 +541,9 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
             onExecuteAll={handleExecuteAll}
             onExecuteToPosition={handleExecuteToPosition}
             onCursorActivity={handleCursorActivity}
+            goals={goals}
+            diagnostics={errorDiagnostic}
+            insertTextRef={insertTextRef}
             executedUpTo={executedUpTo}
             className="h-full"
           />
@@ -557,6 +570,7 @@ export function ProblemSolver({ problem, allProblems = [] }: ProblemSolverProps)
               isComplete={isComplete}
               nextProblem={nextProblem}
               guidedSuggestions={guidedMode ? guidedSuggestions : undefined}
+              onInsertTactic={handleInsertTactic}
               className="h-[calc(100%-37px)]"
             />
           )}

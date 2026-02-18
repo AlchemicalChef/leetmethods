@@ -36,8 +36,16 @@ import { syntaxHighlighting, defaultHighlightStyle, bracketMatching } from '@cod
 import { oneDark } from '@codemirror/theme-one-dark';
 import { useTheme } from 'next-themes';
 import { coqLanguage } from '@/lib/coq/coq-syntax';
-import { coqAutocomplete } from '@/lib/coq/coq-autocomplete';
+import { setDiagnostics } from '@codemirror/lint';
+import type { Diagnostic } from '@codemirror/lint';
+import { coqAutocomplete, setEditorGoals } from '@/lib/coq/coq-autocomplete';
 import { coqHoverTooltip } from '@/lib/coq/coq-hover';
+import { coqFolding } from '@/lib/coq/coq-folding';
+import { coqLinter } from '@/lib/coq/coq-linter';
+import { coqSignatureHelp } from '@/lib/coq/coq-signature';
+import { coqCommentClose } from '@/lib/coq/coq-closebracket';
+import type { CoqGoal } from '@/lib/coq/types';
+import type { CoqDiagnostic } from '@/lib/coq/coq-diagnostics';
 
 /* ============================================================================
  * Execution Highlight System
@@ -144,6 +152,12 @@ interface CoqEditorProps {
   onExecuteToPosition?: (charOffset: number) => void;
   /** Called when the cursor position changes, reporting the character offset */
   onCursorActivity?: (offset: number) => void;
+  /** Current proof goals — used for hypothesis-aware autocomplete */
+  goals?: CoqGoal[];
+  /** Inline error diagnostic to display as a red squiggly underline */
+  diagnostics?: CoqDiagnostic | null;
+  /** Ref that CoqEditor populates with an insert-at-cursor function */
+  insertTextRef?: React.MutableRefObject<((text: string) => void) | null>;
   /** Character offset up to which lines should be highlighted green */
   executedUpTo?: number;
   /** Whether the editor is read-only (used in tutorial/solution views) */
@@ -170,6 +184,9 @@ export function CoqEditor({
   onExecuteAll,
   onExecuteToPosition,
   onCursorActivity,
+  goals = [],
+  diagnostics = null,
+  insertTextRef,
   executedUpTo = 0,
   readOnly = false,
   className = '',
@@ -326,6 +343,10 @@ export function CoqEditor({
       coqKeymap,
       coqAutocomplete,
       coqHoverTooltip,
+      coqFolding,
+      coqLinter,
+      coqSignatureHelp,
+      coqCommentClose,
       executedField,
       executedTheme,
       // Compartments allow theme and readOnly to be reconfigured dynamically
@@ -367,6 +388,27 @@ export function CoqEditor({
   }, [readOnly]);
 
   /**
+   * Populate the insertTextRef with a function that inserts text at the
+   * current cursor position. Used by GoalsPanel's click-to-insert feature.
+   */
+  useEffect(() => {
+    if (!insertTextRef) return;
+    insertTextRef.current = (text: string) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const cursor = view.state.selection.main.head;
+      view.dispatch({
+        changes: { from: cursor, insert: text },
+        selection: { anchor: cursor + text.length },
+      });
+      view.focus();
+    };
+    return () => {
+      if (insertTextRef) insertTextRef.current = null;
+    };
+  }, [insertTextRef]);
+
+  /**
    * Dynamically switch the editor theme without recreating the editor.
    * This preserves cursor position, undo history, and scroll position
    * when the user toggles between light and dark mode.
@@ -388,6 +430,43 @@ export function CoqEditor({
     if (!view) return;
     view.dispatch({ effects: setExecutedUpTo.of(executedUpTo) });
   }, [executedUpTo]);
+
+  /**
+   * Update the goals StateField for context-aware autocomplete.
+   * Hypothesis names from the current proof context appear as completions.
+   */
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({ effects: setEditorGoals.of(goals) });
+  }, [goals]);
+
+  /**
+   * Update inline diagnostics (red squiggly underlines) when the
+   * parent reports a Coq error or clears it.
+   */
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    if (diagnostics) {
+      const docLen = view.state.doc.length;
+      const from = Math.min(diagnostics.from, docLen);
+      const to = Math.min(diagnostics.to, docLen);
+      if (from < to) {
+        const cm6Diags: Diagnostic[] = [{
+          from,
+          to,
+          message: diagnostics.message,
+          severity: diagnostics.severity,
+        }];
+        view.dispatch(setDiagnostics(view.state, cm6Diags));
+      } else {
+        view.dispatch(setDiagnostics(view.state, []));
+      }
+    } else {
+      view.dispatch(setDiagnostics(view.state, []));
+    }
+  }, [diagnostics]);
 
   /**
    * Sync external value changes into the editor.

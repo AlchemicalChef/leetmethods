@@ -193,6 +193,8 @@ export function TutorialPage({ steps, title, storageKey, completionLink }: Tutor
     handleExecuteAll,
     handleReset: baseHandleReset,
     initializeCoqService,
+    errorDiagnostic,
+    clearErrorDiagnostic,
   } = useCoqSession(codeRef, {
     prelude: step?.exercise.prelude ?? '',
     onGoalsUpdate: useCallback((g: CoqGoal[]) => {
@@ -218,6 +220,12 @@ export function TutorialPage({ steps, title, storageKey, completionLink }: Tutor
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentStep, steps]),
   });
+
+  /** Handle code changes — clear diagnostics when user edits */
+  const handleCodeChange = useCallback((newCode: string) => {
+    setCode(newCode);
+    clearErrorDiagnostic();
+  }, [clearErrorDiagnostic]);
 
   /**
    * Restore the saved step index on mount.
@@ -393,10 +401,12 @@ export function TutorialPage({ steps, title, storageKey, completionLink }: Tutor
           <div className="flex-1 min-h-0">
             <CoqEditor
               value={code}
-              onChange={setCode}
+              onChange={handleCodeChange}
               onExecuteNext={handleExecuteNext}
               onExecutePrev={handleExecutePrev}
               onExecuteAll={handleExecuteAll}
+              goals={goals}
+              diagnostics={errorDiagnostic}
               executedUpTo={executedUpTo}
               className="h-full"
             />

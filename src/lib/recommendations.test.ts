@@ -1,21 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getNextRecommendation } from './recommendations';
-import type { ProblemSummary, Difficulty, Category } from '@/lib/problems/types';
-
-function makeProblem(
-  slug: string,
-  category: Category,
-  difficulty: Difficulty
-): ProblemSummary {
-  return {
-    id: slug,
-    slug,
-    title: slug.replace(/-/g, ' '),
-    difficulty,
-    category,
-    tags: [],
-  };
-}
+import { makeProblem } from '@/test/factories';
 
 describe('getNextRecommendation', () => {
   // ── Priority 1: same category, same difficulty ──────────────────────

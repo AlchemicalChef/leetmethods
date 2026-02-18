@@ -41,7 +41,7 @@
 'use client';
 
 import Link from 'next/link';
-import { GraduationCap, ArrowRight, BookOpen, FlaskConical, Database } from 'lucide-react';
+import { GraduationCap, ArrowRight, BookOpen, FlaskConical, Database, Shield } from 'lucide-react';
 import { tutorials } from '@/lib/tutorial/registry';
 
 /* ------------------------------------------------------------------ */
@@ -75,6 +75,12 @@ const volumeGroups = [
     icon: Database,
     description: 'Verified implementations: sorting algorithms and data structures with proofs.',
     slugs: ['verified-sorting', 'verified-data-structures'],
+  },
+  {
+    title: 'Security Foundations (SecF)',
+    icon: Shield,
+    description: 'Program security: noninterference, information flow control, and constant-time programming.',
+    slugs: ['security-noninterference', 'security-ifc', 'security-constant-time'],
   },
 ];
 

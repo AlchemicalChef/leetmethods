@@ -49,11 +49,13 @@
 
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
 import { getCoqService, softResetCoqService, setInitializing } from '@/lib/coq';
 import type { CoqService, CoqGoal } from '@/lib/coq';
 import { useCoqStore } from '@/store/coqStore';
 import { formatError } from '@/lib/format-error';
+import { computeErrorDiagnostic } from '@/lib/coq/coq-diagnostics';
+import type { CoqDiagnostic } from '@/lib/coq/coq-diagnostics';
 
 /* ─── Hook Options Interface ────────────────────────────────────────────── */
 
@@ -137,6 +139,12 @@ export interface UseCoqSessionReturn {
    * Coq session.
    */
   initializeCoqService: () => Promise<void>;
+
+  /** Diagnostic for the current error (null when no error). */
+  errorDiagnostic: CoqDiagnostic | null;
+
+  /** Clears the current error diagnostic (e.g., when user edits code). */
+  clearErrorDiagnostic: () => void;
 }
 
 /* ─── Hook Implementation ───────────────────────────────────────────────── */
@@ -159,6 +167,9 @@ export function useCoqSession(
   const [coqLoading, setCoqLoading] = useState(false);
   const [coqInitError, setCoqInitError] = useState<string | null>(null);
   const [executedUpTo, setExecutedUpTo] = useState(0);
+  const [errorDiagnostic, setErrorDiagnostic] = useState<CoqDiagnostic | null>(null);
+
+  const clearErrorDiagnostic = useCallback(() => setErrorDiagnostic(null), []);
 
   const serviceRef = useRef<CoqService | null>(null);
   const preludeRef = useRef(options.prelude);
@@ -185,9 +196,9 @@ export function useCoqSession(
   const onBeforeExecuteRef = useRef(options.onBeforeExecute);
   const onAfterResetRef = useRef(options.onAfterReset);
 
-  useEffect(() => { onGoalsUpdateRef.current = options.onGoalsUpdate; }, [options.onGoalsUpdate]);
-  useEffect(() => { onBeforeExecuteRef.current = options.onBeforeExecute; }, [options.onBeforeExecute]);
-  useEffect(() => { onAfterResetRef.current = options.onAfterReset; }, [options.onAfterReset]);
+  useLayoutEffect(() => { onGoalsUpdateRef.current = options.onGoalsUpdate; }, [options.onGoalsUpdate]);
+  useLayoutEffect(() => { onBeforeExecuteRef.current = options.onBeforeExecute; }, [options.onBeforeExecute]);
+  useLayoutEffect(() => { onAfterResetRef.current = options.onAfterReset; }, [options.onAfterReset]);
 
   /* ── Initialization ───────────────────────────────────────────────────── */
 
@@ -260,14 +271,24 @@ export function useCoqSession(
    */
   const handleExecuteNext = useCallback(async () => {
     if (!serviceRef.current) return;
+    setErrorDiagnostic(null);
     try {
       const currentCode = codeRef.current;
-      serviceRef.current.setCode(preludeRef.current + '\n\n' + currentCode);
+      const prelude = preludeRef.current;
+      const fullCode = prelude + '\n\n' + currentCode;
+      serviceRef.current.setCode(fullCode);
       onBeforeExecuteRef.current?.();
       await serviceRef.current.executeNext();
     } catch (error) {
       console.error('[useCoqSession] executeNext failed:', error);
-      addMessage('error', formatError(error, 'Execution failed'));
+      const errMsg = formatError(error, 'Execution failed');
+      addMessage('error', errMsg);
+      if (serviceRef.current) {
+        const prelude = preludeRef.current;
+        const fullCode = prelude + '\n\n' + codeRef.current;
+        const diag = computeErrorDiagnostic(fullCode, serviceRef.current.getExecutedCount(), prelude.length, errMsg);
+        if (diag) setErrorDiagnostic(diag);
+      }
     }
   }, [codeRef, addMessage]);
 
@@ -292,6 +313,7 @@ export function useCoqSession(
    */
   const handleExecuteToPosition = useCallback(async (charOffset: number) => {
     if (!serviceRef.current) return;
+    setErrorDiagnostic(null);
     try {
       const currentCode = codeRef.current;
       serviceRef.current.setCode(preludeRef.current + '\n\n' + currentCode);
@@ -300,7 +322,14 @@ export function useCoqSession(
       await serviceRef.current.executeToPosition(charOffset + preludeLen);
     } catch (error) {
       console.error('[useCoqSession] executeToPosition failed:', error);
-      addMessage('error', formatError(error, 'Execution failed'));
+      const errMsg = formatError(error, 'Execution failed');
+      addMessage('error', errMsg);
+      if (serviceRef.current) {
+        const prelude = preludeRef.current;
+        const fullCode = prelude + '\n\n' + codeRef.current;
+        const diag = computeErrorDiagnostic(fullCode, serviceRef.current.getExecutedCount(), prelude.length, errMsg);
+        if (diag) setErrorDiagnostic(diag);
+      }
     }
   }, [codeRef, addMessage]);
 
@@ -310,14 +339,28 @@ export function useCoqSession(
    */
   const handleExecuteAll = useCallback(async () => {
     if (!serviceRef.current) return;
+    setErrorDiagnostic(null);
     try {
       const currentCode = codeRef.current;
-      serviceRef.current.setCode(preludeRef.current + '\n\n' + currentCode);
+      const prelude = preludeRef.current;
+      const fullCode = prelude + '\n\n' + currentCode;
+      serviceRef.current.setCode(fullCode);
       onBeforeExecuteRef.current?.();
-      await serviceRef.current.executeAll();
+      const result = await serviceRef.current.executeAll();
+      if (result.error) {
+        const diag = computeErrorDiagnostic(fullCode, serviceRef.current.getExecutedCount(), prelude.length, result.error);
+        if (diag) setErrorDiagnostic(diag);
+      }
     } catch (error) {
       console.error('[useCoqSession] executeAll failed:', error);
-      addMessage('error', formatError(error, 'Execution failed'));
+      const errMsg = formatError(error, 'Execution failed');
+      addMessage('error', errMsg);
+      if (serviceRef.current) {
+        const prelude = preludeRef.current;
+        const fullCode = prelude + '\n\n' + codeRef.current;
+        const diag = computeErrorDiagnostic(fullCode, serviceRef.current.getExecutedCount(), prelude.length, errMsg);
+        if (diag) setErrorDiagnostic(diag);
+      }
     }
   }, [codeRef, addMessage]);
 
@@ -331,6 +374,7 @@ export function useCoqSession(
     try {
       await serviceRef.current.reset();
       setExecutedUpTo(0);
+      setErrorDiagnostic(null);
       onAfterResetRef.current?.();
     } catch (error) {
       console.error('[useCoqSession] reset failed:', error);
@@ -366,5 +410,7 @@ export function useCoqSession(
     handleExecuteToPosition,
     handleReset,
     initializeCoqService,
+    errorDiagnostic,
+    clearErrorDiagnostic,
   };
 }

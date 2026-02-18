@@ -61,70 +61,7 @@ const FORBIDDEN_TACTICS_PATTERNS: Record<string, RegExp> = {
   Conjecture: /\bConjecture\b/,
 };
 
-/* ==============================================================================
- * Comment Stripping
- * ==============================================================================
- * Removes Coq comments from source code before running pattern checks.
- * This is a simplified version of the parser in coq-parser.ts, focused
- * solely on producing comment-free text for regex matching.
- *
- * Like the full parser, it handles:
- * - Nested comments: `(* (* inner *) outer *)`
- * - String literals: `"strings with (* not a comment *)"
- * - Escaped quotes: `"hello ""world"""`
- * =========================================================================== */
-
-/**
- * Strips all Coq comments from source code, preserving strings.
- *
- * This is necessary before checking for forbidden tactics because a user
- * might legitimately have `admit` or `Admitted` inside a comment (e.g.,
- * as a TODO note or from the original template). Only tactics in actual
- * code should be flagged.
- *
- * The function is string-aware: it won't start stripping a "comment" that
- * appears inside a string literal like `"(* not a comment *)"`.
- *
- * @param code - Raw Coq source code potentially containing comments
- * @returns The code with all comments removed, strings preserved
- */
-function stripCoqComments(code: string): string {
-  let result = '';
-  let depth = 0;
-  let inString = false;
-  for (let i = 0; i < code.length; i++) {
-    const char = code[i];
-    const next = code[i + 1];
-
-    // Enter nested comment (only outside strings)
-    if (char === '(' && next === '*' && !inString) {
-      depth++;
-      i++;
-      continue;
-    }
-    // Exit nested comment
-    if (char === '*' && next === ')' && depth > 0 && !inString) {
-      depth--;
-      i++;
-      continue;
-    }
-    // Handle Coq string boundaries and escaped quotes (`""`)
-    if (char === '"' && depth === 0) {
-      if (inString && next === '"') {
-        // Escaped quote inside a Coq string: `""` represents a literal `"`
-        result += '""';
-        i++;
-        continue;
-      }
-      inString = !inString;
-    }
-    // Only include characters that are outside comments
-    if (depth === 0) {
-      result += char;
-    }
-  }
-  return result;
-}
+import { stripCoqComments } from './coq-comment';
 
 /* ==============================================================================
  * Forbidden Tactic Checker

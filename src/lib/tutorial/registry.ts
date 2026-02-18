@@ -51,6 +51,9 @@ import { definingLanguagesSteps } from './defining-languages-steps';
 import { typeSystemsSteps } from './type-systems-steps';
 import { verifiedSortingSteps } from './verified-sorting-steps';
 import { verifiedDataStructuresSteps } from './verified-data-structures-steps';
+import { securityNoninterferenceSteps } from './security-noninterference-steps';
+import { securityIfcSteps } from './security-ifc-steps';
+import { securityConstantTimeSteps } from './security-constant-time-steps';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -96,6 +99,8 @@ export interface TutorialConfig {
  *     -> proof-strategies -> polymorphism -> inductive-props
  *   - Programming Language Foundations (PLF): defining-languages -> type-systems
  *   - Verified Functional Algorithms (VFA): verified-sorting -> verified-data-structures
+ *   - Security Foundations (SecF): security-noninterference -> security-ifc
+ *     -> security-constant-time
  */
 export const tutorials: TutorialConfig[] = [
   {
@@ -166,6 +171,27 @@ export const tutorials: TutorialConfig[] = [
     title: 'Tutorial: Verified Data Structures',
     storageKey: 'leetmethods-verified-data-structures-progress',
     steps: verifiedDataStructuresSteps,
+    completionLink: { href: '/tutorial/security-noninterference', label: 'Continue to Security Foundations' },
+  },
+  {
+    slug: 'security-noninterference',
+    title: 'Tutorial: Noninterference & Secrecy',
+    storageKey: 'leetmethods-security-noninterference-progress',
+    steps: securityNoninterferenceSteps,
+    completionLink: { href: '/tutorial/security-ifc', label: 'Continue to Security Type Systems' },
+  },
+  {
+    slug: 'security-ifc',
+    title: 'Tutorial: Security Type Systems',
+    storageKey: 'leetmethods-security-ifc-progress',
+    steps: securityIfcSteps,
+    completionLink: { href: '/tutorial/security-constant-time', label: 'Continue to Constant-Time Programming' },
+  },
+  {
+    slug: 'security-constant-time',
+    title: 'Tutorial: Constant-Time Programming',
+    storageKey: 'leetmethods-security-ct-progress',
+    steps: securityConstantTimeSteps,
     /**
      * Final tutorial in the curriculum. Points to `/learn` (Learning Paths)
      * as the natural next step after completing all tutorials.

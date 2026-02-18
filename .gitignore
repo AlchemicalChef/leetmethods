@@ -7,6 +7,9 @@
 
 # Testing
 /coverage
+/playwright-results/
+/playwright-report/
+/test-results/
 
 # Next.js
 /.next/
@@ -86,3 +89,7 @@ ehthumbs.db
 
 # Local Netlify folder
 .netlify
+
+# Claude Code
+plans/
+.claude/

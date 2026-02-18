@@ -611,6 +611,15 @@ export class CoqService {
     return this.proofStarted;
   }
 
+  /**
+   * Returns the number of statements that have been successfully executed.
+   * Used by diagnostics to determine the index of the next (failing) statement.
+   * @returns Count of executed statements
+   */
+  getExecutedCount(): number {
+    return this.executedStatements.length;
+  }
+
   /* --------------------------------------------------------------------------
    * Position Tracking
    * --------------------------------------------------------------------------

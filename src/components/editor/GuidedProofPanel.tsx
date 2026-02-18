@@ -42,6 +42,8 @@ import type { TacticSuggestion, Confidence } from '@/lib/coq/tactic-suggester';
 interface GuidedProofPanelProps {
   /** Array of tactic suggestions computed from the current proof goals */
   suggestions: TacticSuggestion[];
+  /** Callback to insert a tactic at the editor cursor position */
+  onInsertTactic?: (tactic: string) => void;
 }
 
 /* ============================================================================
@@ -73,7 +75,7 @@ const confidenceColors: Record<Confidence, string> = {
  * @param props - See {@link GuidedProofPanelProps}
  * @returns The suggestions panel, or null if no suggestions available
  */
-export function GuidedProofPanel({ suggestions }: GuidedProofPanelProps) {
+export function GuidedProofPanel({ suggestions, onInsertTactic }: GuidedProofPanelProps) {
   if (suggestions.length === 0) return null;
 
   return (
@@ -86,7 +88,7 @@ export function GuidedProofPanel({ suggestions }: GuidedProofPanelProps) {
       {/* List of individual suggestion cards */}
       <div className="px-3 pb-3 space-y-2">
         {suggestions.map((suggestion) => (
-          <SuggestionCard key={suggestion.tactic} suggestion={suggestion} />
+          <SuggestionCard key={suggestion.tactic} suggestion={suggestion} onInsertTactic={onInsertTactic} />
         ))}
       </div>
     </div>
@@ -103,15 +105,21 @@ export function GuidedProofPanel({ suggestions }: GuidedProofPanelProps) {
  *
  * @param props.suggestion - The tactic suggestion to display
  */
-function SuggestionCard({ suggestion }: { suggestion: TacticSuggestion }) {
+function SuggestionCard({ suggestion, onInsertTactic }: { suggestion: TacticSuggestion; onInsertTactic?: (tactic: string) => void }) {
   /** Whether the documentation section is expanded */
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="rounded-md border bg-background/80 text-sm">
-      {/* Main row: tactic name, reason text, and confidence badge */}
+      {/* Main row: tactic name (clickable to insert), reason text, and confidence badge */}
       <div className="px-3 py-2 flex items-start gap-2">
-        <code className="font-mono font-medium text-primary shrink-0">{suggestion.tactic}</code>
+        <button
+          onClick={() => onInsertTactic?.(suggestion.tactic)}
+          className="font-mono font-medium text-primary shrink-0 hover:underline cursor-pointer text-left"
+          title="Click to insert at cursor"
+        >
+          {suggestion.tactic}
+        </button>
         <span className="text-muted-foreground flex-1">{suggestion.reason}</span>
         <Badge className={`shrink-0 text-[10px] px-1.5 ${confidenceColors[suggestion.confidence]}`}>
           {suggestion.confidence}
